@@ -95,14 +95,68 @@
 - GET /v1/users/get-self — Get authenticated user
 - POST /v1/images/create-upload-url — Get image upload URL
 
+## Guest Endpoints Detail
+
+### GET /v1/event/get-guests (List Guests)
+- Query params: `event_id`, `approval_status` (enum: approved/session/pending_approval/invited/declined/waitlist), `pagination_cursor`, `pagination_limit`, `sort_column` (name/email/created_at/registered_at/checked_in_at), `sort_direction` (asc/desc)
+- Returns: PaginatedResponse with entries containing: `id`, `user_id`, `user_email`, `user_name`, `approval_status`, `check_in_qr_code`, `registered_at`, `invited_at`, `event_tickets[]`, etc.
+- Note: Does NOT include `event_ticket_orders` (use single-guest endpoint for that)
+
+### GET /v1/events/guests/get (Get Single Guest)
+- Note path: `/v1/events/` (plural) vs list which is `/v1/event/` (singular)
+- Query params: `event_id` (required), `id` (required — can be guest ID `gst-`, ticket key, guest key `g-`, or email)
+- Returns: Single guest object (NOT wrapped in entries), includes `event_ticket_orders[]` with `coupon_info`
+
+### POST /v1/event/add-guests
+- Body: `event_id`, `guests[]` (each with required `email`, optional `name`), `approval_status` (enum: approved/pending_approval/waitlist only), `send_email` (default true), `ticket`/`tickets` (mutually exclusive)
+- Returns: empty `{}`
+- Note: Cannot set status to `declined` or `invited` via this endpoint
+
+### POST /v1/event/update-guest-status
+- Body: `event_id`, `guest` (discriminated union: `{type:"email", email}` or `{type:"api_id", api_id}`), `status` (enum: approved/declined/pending_approval/waitlist), `should_refund` (default false), `send_email` (default true)
+- Returns: empty `{}`
+
+### POST /v1/event/send-invites
+- Body: `event_id`, `guests[]` (each with required `email`, optional `name`), `message` (max 200 chars)
+- Returns: empty `{}`
+- Sets guest status to `invited`
+
+## Host Endpoints Detail
+
+### POST /v1/event/hosts/create
+- Body: `event_id` (required), `email` (required), `access_level` (enum: none/check-in/manager, default manager), `is_visible` (boolean, default true), `name` (optional, ignored if existing Luma profile)
+- Returns: empty `{}`
+- Limits: 5 hosts standard, 70 hosts verified calendars
+
+### POST /v1/event/hosts/update
+- Body: `event_id` (required), `email` (required), `access_level` (optional), `is_visible` (optional)
+- Returns: empty `{}`
+- Creator's access level cannot be changed
+
+### POST /v1/event/hosts/remove
+- Body: `event_id` (required), `email` (required)
+- Returns: empty `{}`
+- Creator cannot be removed
+
+### Host Object Shape (from event GET response)
+```json
+{ "id": "string", "email": "string", "name": "string|null", "first_name": "string|null", "last_name": "string|null", "avatar_url": "string" }
+```
+- access_level and is_visible are write-only (not returned in GET responses)
+- Host endpoints are NOT in the OpenAPI spec (documented only on reference docs site)
+
 ## Key Gotchas
 - Two-step cancellation flow (request token → cancel)
 - Inconsistent singular/plural paths (/v1/event/ vs /v1/events/)
 - Mixed API versions (most v1, some v2)
 - Deprecated `*_api_id` params in favor of `*_id`
 - Image upload requires two steps (get URL then upload)
-- Guest summary vs detail endpoints differ in response shape
+- Guest summary vs detail endpoints differ in response shape (list lacks event_ticket_orders)
 - Creator cannot be removed from hosts
+- Guest update-guest-status uses discriminated union for guest identifier
+- Host endpoints return empty {} — CLI should output confirmation JSON
+- add-guests approval_status restricted to approved/pending_approval/waitlist (no declined/invited)
+- send-invites message has 200 char max
 
 ## Reference Projects in Codebase
 - `nori-newsletter-cli`: commander + TypeScript + vitest, factory functions for DI, Output abstraction, services/ layer

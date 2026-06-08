@@ -1,12 +1,7 @@
-import { Command, InvalidArgumentError } from "commander";
+import { Command } from "commander";
 import type { LumaService } from "../services/luma.js";
 import type { Output } from "../output.js";
-
-function parseIntStrict(value: string): number {
-  const n = parseInt(value, 10);
-  if (isNaN(n)) throw new InvalidArgumentError(`"${value}" is not a valid number.`);
-  return n;
-}
+import { parseIntStrict } from "../parse.js";
 
 export function createEventsCommand(luma: LumaService, out: Output): Command {
   const events = new Command("events")

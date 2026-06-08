@@ -6,14 +6,16 @@
 - Project scaffolding (package.json, tsconfig, vitest, ESM setup)
 - Core infrastructure (Output abstraction, LumaService interface, config loader, program shell)
 - Events command group (list, get, create, update, cancel) with 25 passing tests
+- Guest command group (list, get, add, update-status, send-invites) with 27 passing tests
+- Host command group (add, update, remove) with 16 passing tests
 - Documentation (docs.md files for all source directories)
 
 ## Next Up
-- Guest + host commands
+- Ticket type commands
 
 ## Planned (subsequent commits)
 1. ~~Project scaffolding + core infra + events commands~~ DONE
-2. Guest + host commands
+2. ~~Guest + host commands~~ DONE
 3. Ticket type commands
 4. Calendar commands (admins, coupons, event-tags, add/approve/reject)
 5. Contact commands (list, import, contact-tags)

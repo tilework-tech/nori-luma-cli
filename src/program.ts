@@ -2,6 +2,8 @@ import { Command } from "commander";
 import type { LumaService } from "./services/luma.js";
 import type { Output } from "./output.js";
 import { createEventsCommand } from "./commands/events.js";
+import { createGuestsCommand } from "./commands/guests.js";
+import { createHostsCommand } from "./commands/hosts.js";
 
 function configureCommandOutput(cmd: Command, out: Output): void {
   cmd.configureOutput({
@@ -30,6 +32,8 @@ export function createProgram(luma: LumaService, out: Output): Command {
     .addHelpText("after", `\nSource: ${import.meta.dirname}`);
 
   program.addCommand(createEventsCommand(luma, out));
+  program.addCommand(createGuestsCommand(luma, out));
+  program.addCommand(createHostsCommand(luma, out));
 
   configureCommandOutput(program, out);
 

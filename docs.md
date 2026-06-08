@@ -30,6 +30,8 @@ Path: @/
    +-- createProgram()       @/src/program.ts
          |
          +-- createEventsCommand()  @/src/commands/events.ts
+         +-- createGuestsCommand()  @/src/commands/guests.ts
+         +-- createHostsCommand()   @/src/commands/hosts.ts
 ```
 
 ### Things to Know

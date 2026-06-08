@@ -61,6 +61,79 @@ export interface CancelRequestResponse {
   cancellation_token: string;
 }
 
+export interface LumaGuest {
+  id: string;
+  user_id: string;
+  user_email: string;
+  user_name: string | null;
+  user_first_name: string | null;
+  user_last_name: string | null;
+  approval_status: string;
+  check_in_qr_code: string | null;
+  registered_at: string | null;
+  invited_at: string | null;
+  joined_at: string | null;
+  phone_number: string | null;
+  utm_source: string | null;
+  event_tickets: unknown[];
+}
+
+export interface ListGuestsParams {
+  eventId: string;
+  approvalStatus?: string;
+  paginationLimit?: number;
+  paginationCursor?: string;
+  sortColumn?: string;
+  sortDirection?: string;
+}
+
+export interface AddGuestsParams {
+  event_id: string;
+  guests: { email: string; name?: string }[];
+  approval_status?: string;
+  send_email?: boolean;
+}
+
+export interface GuestIdentifier {
+  type: "email" | "api_id";
+  email?: string;
+  api_id?: string;
+}
+
+export interface UpdateGuestStatusParams {
+  event_id: string;
+  guest: GuestIdentifier;
+  status: string;
+  should_refund?: boolean;
+  send_email?: boolean;
+}
+
+export interface SendInvitesParams {
+  event_id: string;
+  guests: { email: string; name?: string }[];
+  message?: string;
+}
+
+export interface CreateHostParams {
+  event_id: string;
+  email: string;
+  access_level?: string;
+  is_visible?: boolean;
+  name?: string;
+}
+
+export interface UpdateHostParams {
+  event_id: string;
+  email: string;
+  access_level?: string;
+  is_visible?: boolean;
+}
+
+export interface RemoveHostParams {
+  event_id: string;
+  email: string;
+}
+
 export interface LumaService {
   listEvents(params?: ListEventsParams): Promise<PaginatedResponse<{ event: LumaEvent }>>;
   getEvent(id: string): Promise<{ event: LumaEvent }>;
@@ -68,6 +141,14 @@ export interface LumaService {
   updateEvent(params: UpdateEventParams): Promise<{ event: LumaEvent }>;
   requestCancellation(eventId: string): Promise<CancelRequestResponse>;
   cancelEvent(eventId: string, cancellationToken: string): Promise<void>;
+  listGuests(params: ListGuestsParams): Promise<PaginatedResponse<LumaGuest>>;
+  getGuest(eventId: string, id: string): Promise<LumaGuest>;
+  addGuests(params: AddGuestsParams): Promise<void>;
+  updateGuestStatus(params: UpdateGuestStatusParams): Promise<void>;
+  sendInvites(params: SendInvitesParams): Promise<void>;
+  createHost(params: CreateHostParams): Promise<void>;
+  updateHost(params: UpdateHostParams): Promise<void>;
+  removeHost(params: RemoveHostParams): Promise<void>;
 }
 
 export function createLumaService(apiKey: string): LumaService {
@@ -138,6 +219,44 @@ export function createLumaService(apiKey: string): LumaService {
         event_id: eventId,
         cancellation_token: cancellationToken,
       });
+    },
+
+    async listGuests(params: ListGuestsParams) {
+      const query: Record<string, string> = { event_id: params.eventId };
+      if (params.approvalStatus) query.approval_status = params.approvalStatus;
+      if (params.paginationLimit) query.pagination_limit = String(params.paginationLimit);
+      if (params.paginationCursor) query.pagination_cursor = params.paginationCursor;
+      if (params.sortColumn) query.sort_column = params.sortColumn;
+      if (params.sortDirection) query.sort_direction = params.sortDirection;
+      return request<PaginatedResponse<LumaGuest>>("GET", "/v1/event/get-guests", undefined, query);
+    },
+
+    async getGuest(eventId: string, id: string) {
+      return request<LumaGuest>("GET", "/v1/events/guests/get", undefined, { event_id: eventId, id });
+    },
+
+    async addGuests(params: AddGuestsParams) {
+      await request<void>("POST", "/v1/event/add-guests", params as unknown as Record<string, unknown>);
+    },
+
+    async updateGuestStatus(params: UpdateGuestStatusParams) {
+      await request<void>("POST", "/v1/event/update-guest-status", params as unknown as Record<string, unknown>);
+    },
+
+    async sendInvites(params: SendInvitesParams) {
+      await request<void>("POST", "/v1/event/send-invites", params as unknown as Record<string, unknown>);
+    },
+
+    async createHost(params: CreateHostParams) {
+      await request<void>("POST", "/v1/event/hosts/create", params as unknown as Record<string, unknown>);
+    },
+
+    async updateHost(params: UpdateHostParams) {
+      await request<void>("POST", "/v1/event/hosts/update", params as unknown as Record<string, unknown>);
+    },
+
+    async removeHost(params: RemoveHostParams) {
+      await request<void>("POST", "/v1/event/hosts/remove", params as unknown as Record<string, unknown>);
     },
   };
 }
