@@ -1,17 +1,18 @@
 # Current Progress
 
-## Status: Starting — Project Scaffolding
-
-This is a greenfield project. No code exists yet.
+## Status: In Progress — Adding Command Groups
 
 ## Completed
-- (none)
+- Project scaffolding (package.json, tsconfig, vitest, ESM setup)
+- Core infrastructure (Output abstraction, LumaService interface, config loader, program shell)
+- Events command group (list, get, create, update, cancel) with 25 passing tests
+- Documentation (docs.md files for all source directories)
 
-## In Progress
-- Project scaffolding + core infrastructure + events command group
+## Next Up
+- Guest + host commands
 
 ## Planned (subsequent commits)
-1. Project scaffolding + core infra + events commands
+1. ~~Project scaffolding + core infra + events commands~~ DONE
 2. Guest + host commands
 3. Ticket type commands
 4. Calendar commands (admins, coupons, event-tags, add/approve/reject)
