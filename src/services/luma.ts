@@ -83,13 +83,17 @@ export function createLumaService(apiKey: string): LumaService {
       }
     }
 
+    const headers: Record<string, string> = {
+      "x-luma-api-key": apiKey,
+      Accept: "application/json",
+    };
+    if (body) {
+      headers["Content-Type"] = "application/json";
+    }
+
     const response = await fetch(url.toString(), {
       method,
-      headers: {
-        "x-luma-api-key": apiKey,
-        "Content-Type": "application/json",
-        Accept: "application/json",
-      },
+      headers,
       body: body ? JSON.stringify(body) : undefined,
     });
 
@@ -99,7 +103,7 @@ export function createLumaService(apiKey: string): LumaService {
     }
 
     const text = await response.text();
-    if (!text) return undefined as T;
+    if (!text) return undefined as unknown as T;
     return JSON.parse(text) as T;
   }
 

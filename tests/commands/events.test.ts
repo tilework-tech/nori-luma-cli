@@ -156,6 +156,9 @@ describe("events command", () => {
       ]);
       const output = JSON.parse(result.stdout);
       expect(output.event.name).toBe("Full Event");
+      expect(output.event.description).toBe("A great event");
+      expect(output.event.meeting_url).toBe("https://zoom.us/j/123");
+      expect(output.event.visibility).toBe("public");
       expect(result.exitCode).toBe(0);
     });
 

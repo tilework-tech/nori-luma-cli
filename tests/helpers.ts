@@ -170,7 +170,8 @@ export async function runCommand(
     ) {
       out.exitCode = (err as { exitCode: number }).exitCode;
     } else {
-      throw err;
+      out.error(String(err) + "\n");
+      out.exitCode = 1;
     }
   }
 
