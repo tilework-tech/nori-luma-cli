@@ -106,5 +106,71 @@ export function createEventsCommand(luma: LumaService, out: Output): Command {
       out.write(JSON.stringify({ cancelled: true, event_id: opts.eventId }) + "\n");
     });
 
+  events
+    .command("list-coupons")
+    .description("List coupons for an event")
+    .requiredOption("--event-id <event-id>", "Event ID (format: evt-xxx)")
+    .option("--limit <number>", "Maximum number of coupons per page", parseIntStrict)
+    .option("--cursor <cursor>", "Pagination cursor from a previous response")
+    .action(async (opts) => {
+      const result = await luma.listEventCoupons({
+        eventId: opts.eventId,
+        paginationLimit: opts.limit,
+        paginationCursor: opts.cursor,
+      });
+      out.write(JSON.stringify(result, null, 2) + "\n");
+    });
+
+  events
+    .command("create-coupon")
+    .description("Create a new coupon for an event")
+    .requiredOption("--event-id <event-id>", "Event ID (format: evt-xxx)")
+    .requiredOption("--code <code>", "Coupon code (1-20 characters, case insensitive)")
+    .requiredOption("--discount-type <type>", "Discount type: percent or amount")
+    .option("--percent-off <number>", "Percent discount (0-100, for percent type)", parseIntStrict)
+    .option("--cents-off <number>", "Amount discount in cents (for amount type)", parseIntStrict)
+    .option("--currency <code>", "Currency code for amount discount (e.g. usd)")
+    .option("--remaining-count <number>", "Number of uses (use 1000000 for unlimited)", parseIntStrict)
+    .option("--valid-start-at <date>", "Coupon valid from (ISO 8601)")
+    .option("--valid-end-at <date>", "Coupon valid until (ISO 8601)")
+    .option("--event-ticket-type-id <id>", "Restrict to a specific ticket type")
+    .action(async (opts) => {
+      let discount;
+      if (opts.discountType === "percent") {
+        discount = { discount_type: "percent" as const, percent_off: opts.percentOff };
+      } else {
+        discount = { discount_type: "amount" as const, cents_off: opts.centsOff, currency: opts.currency };
+      }
+      const result = await luma.createEventCoupon({
+        event_id: opts.eventId,
+        code: opts.code,
+        discount,
+        remaining_count: opts.remainingCount,
+        valid_start_at: opts.validStartAt,
+        valid_end_at: opts.validEndAt,
+        event_ticket_type_id: opts.eventTicketTypeId,
+      });
+      out.write(JSON.stringify(result, null, 2) + "\n");
+    });
+
+  events
+    .command("update-coupon")
+    .description("Update an existing event coupon (identified by code)")
+    .requiredOption("--event-id <event-id>", "Event ID (format: evt-xxx)")
+    .requiredOption("--code <code>", "Coupon code to update")
+    .option("--remaining-count <number>", "New remaining use count", parseIntStrict)
+    .option("--valid-start-at <date>", "New valid-from date (ISO 8601)")
+    .option("--valid-end-at <date>", "New valid-until date (ISO 8601)")
+    .action(async (opts) => {
+      await luma.updateEventCoupon({
+        event_id: opts.eventId,
+        code: opts.code,
+        remaining_count: opts.remainingCount,
+        valid_start_at: opts.validStartAt,
+        valid_end_at: opts.validEndAt,
+      });
+      out.write(JSON.stringify({ updated: true, code: opts.code }) + "\n");
+    });
+
   return events;
 }

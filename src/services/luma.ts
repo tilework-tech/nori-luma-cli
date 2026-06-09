@@ -535,6 +535,30 @@ export interface LumaEntityLookupResult {
   entity: LumaEntity | null;
 }
 
+export interface ListEventCouponsParams {
+  eventId: string;
+  paginationCursor?: string;
+  paginationLimit?: number;
+}
+
+export interface CreateEventCouponParams {
+  event_id: string;
+  code: string;
+  discount: { discount_type: "percent"; percent_off: number } | { discount_type: "amount"; cents_off: number; currency: string };
+  remaining_count?: number;
+  valid_start_at?: string;
+  valid_end_at?: string;
+  event_ticket_type_id?: string;
+}
+
+export interface UpdateEventCouponParams {
+  event_id: string;
+  code: string;
+  remaining_count?: number;
+  valid_start_at?: string | null;
+  valid_end_at?: string | null;
+}
+
 export interface CreateUploadUrlParams {
   content_type?: string;
 }
@@ -551,6 +575,9 @@ export interface LumaService {
   updateEvent(params: UpdateEventParams): Promise<{ event: LumaEvent }>;
   requestCancellation(eventId: string): Promise<CancelRequestResponse>;
   cancelEvent(eventId: string, cancellationToken: string): Promise<void>;
+  listEventCoupons(params: ListEventCouponsParams): Promise<PaginatedResponse<LumaCoupon>>;
+  createEventCoupon(params: CreateEventCouponParams): Promise<LumaCoupon>;
+  updateEventCoupon(params: UpdateEventCouponParams): Promise<void>;
   listGuests(params: ListGuestsParams): Promise<PaginatedResponse<LumaGuest>>;
   getGuest(eventId: string, id: string): Promise<LumaGuest>;
   addGuests(params: AddGuestsParams): Promise<void>;
@@ -673,6 +700,21 @@ export function createLumaService(apiKey: string): LumaService {
         event_id: eventId,
         cancellation_token: cancellationToken,
       });
+    },
+
+    async listEventCoupons(params: ListEventCouponsParams) {
+      const query: Record<string, string> = { event_id: params.eventId };
+      if (params.paginationLimit) query.pagination_limit = String(params.paginationLimit);
+      if (params.paginationCursor) query.pagination_cursor = params.paginationCursor;
+      return request<PaginatedResponse<LumaCoupon>>("GET", "/v1/event/coupons", undefined, query);
+    },
+
+    async createEventCoupon(params: CreateEventCouponParams) {
+      return request<LumaCoupon>("POST", "/v1/events/coupons/create", params as unknown as Record<string, unknown>);
+    },
+
+    async updateEventCoupon(params: UpdateEventCouponParams) {
+      await request<void>("POST", "/v1/event/update-coupon", params as unknown as Record<string, unknown>);
     },
 
     async listGuests(params: ListGuestsParams) {

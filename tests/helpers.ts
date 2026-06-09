@@ -33,6 +33,9 @@ import type {
   ListCouponsParams,
   CreateCouponParams,
   UpdateCouponParams,
+  ListEventCouponsParams,
+  CreateEventCouponParams,
+  UpdateEventCouponParams,
   CreateEventTagParams,
   UpdateEventTagParams,
   ApplyEventTagParams,
@@ -315,6 +318,7 @@ export function createMockLumaService(): LumaService & {
   calendar: LumaCalendar;
   calendarAdmins: LumaCalendarAdmin[];
   calendarCoupons: LumaCoupon[];
+  eventCoupons: Map<string, LumaCoupon[]>;
   eventTags: LumaEventTag[];
   calendarEvents: MockCalendarEvent[];
   contacts: LumaContact[];
@@ -355,6 +359,7 @@ export function createMockLumaService(): LumaService & {
     calendar: makeCalendar(),
     calendarAdmins: [],
     calendarCoupons: [],
+    eventCoupons: new Map(),
     eventTags: [],
     calendarEvents: [],
     contacts: [],
@@ -460,6 +465,46 @@ export function createMockLumaService(): LumaService & {
       }
       events.delete(eventId);
       cancellationTokens.delete(eventId);
+    },
+
+    async listEventCoupons(params: ListEventCouponsParams) {
+      const coupons = this.eventCoupons.get(params.eventId) ?? [];
+      const limit = params.paginationLimit ?? 50;
+      const startIndex = params.paginationCursor ? parseInt(params.paginationCursor, 10) : 0;
+      const page = coupons.slice(startIndex, startIndex + limit);
+      const hasMore = startIndex + limit < coupons.length;
+      return {
+        entries: page,
+        has_more: hasMore,
+        next_cursor: hasMore ? String(startIndex + limit) : null,
+      };
+    },
+
+    async createEventCoupon(params: CreateEventCouponParams) {
+      const coupon = makeCoupon({
+        id: `cpn-${Date.now()}`,
+        code: params.code,
+        remaining_count: params.remaining_count ?? 1000000,
+        valid_start_at: params.valid_start_at ?? null,
+        valid_end_at: params.valid_end_at ?? null,
+        percent_off: params.discount.discount_type === "percent" ? params.discount.percent_off : null,
+        cents_off: params.discount.discount_type === "amount" ? params.discount.cents_off : null,
+        currency: params.discount.discount_type === "amount" ? params.discount.currency : null,
+        event_ticket_type_id: params.event_ticket_type_id ?? undefined,
+      });
+      const existing = this.eventCoupons.get(params.event_id) ?? [];
+      existing.push(coupon);
+      this.eventCoupons.set(params.event_id, existing);
+      return coupon;
+    },
+
+    async updateEventCoupon(params: UpdateEventCouponParams) {
+      const coupons = this.eventCoupons.get(params.event_id) ?? [];
+      const coupon = coupons.find((c) => c.code === params.code);
+      if (!coupon) throw new Error(`Luma API error 404: Coupon not found`);
+      if (params.remaining_count !== undefined) coupon.remaining_count = params.remaining_count;
+      if (params.valid_start_at !== undefined) coupon.valid_start_at = params.valid_start_at ?? null;
+      if (params.valid_end_at !== undefined) coupon.valid_end_at = params.valid_end_at ?? null;
     },
 
     async listGuests(params: ListGuestsParams) {

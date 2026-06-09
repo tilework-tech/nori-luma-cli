@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { createMockLumaService, makeEvent, runCommand } from "../helpers.js";
+import { createMockLumaService, makeEvent, makeCoupon, runCommand } from "../helpers.js";
 
 describe("events command", () => {
   let luma: ReturnType<typeof createMockLumaService>;
@@ -281,6 +281,241 @@ describe("events command", () => {
     });
   });
 
+  describe("events list-coupons", () => {
+    it("lists coupons for an event as JSON", async () => {
+      const coupon = makeCoupon({ id: "cpn-1", code: "SAVE10", percent_off: 10 });
+      luma.eventCoupons.set("evt-1", [coupon]);
+
+      const result = await runCommand(luma, [
+        "events",
+        "list-coupons",
+        "--event-id",
+        "evt-1",
+      ]);
+      expect(result.exitCode).toBe(0);
+      const output = JSON.parse(result.stdout);
+      expect(output.entries).toHaveLength(1);
+      expect(output.entries[0].code).toBe("SAVE10");
+      expect(output.entries[0].percent_off).toBe(10);
+    });
+
+    it("supports --limit for pagination", async () => {
+      const coupons = Array.from({ length: 5 }, (_, i) =>
+        makeCoupon({ id: `cpn-${i}`, code: `CODE${i}` })
+      );
+      luma.eventCoupons.set("evt-1", coupons);
+
+      const result = await runCommand(luma, [
+        "events",
+        "list-coupons",
+        "--event-id",
+        "evt-1",
+        "--limit",
+        "2",
+      ]);
+      expect(result.exitCode).toBe(0);
+      const output = JSON.parse(result.stdout);
+      expect(output.entries).toHaveLength(2);
+      expect(output.has_more).toBe(true);
+    });
+
+    it("supports --cursor for pagination continuation", async () => {
+      const coupons = Array.from({ length: 5 }, (_, i) =>
+        makeCoupon({ id: `cpn-${i}`, code: `CODE${i}` })
+      );
+      luma.eventCoupons.set("evt-1", coupons);
+
+      const result = await runCommand(luma, [
+        "events",
+        "list-coupons",
+        "--event-id",
+        "evt-1",
+        "--limit",
+        "2",
+        "--cursor",
+        "2",
+      ]);
+      expect(result.exitCode).toBe(0);
+      const output = JSON.parse(result.stdout);
+      expect(output.entries).toHaveLength(2);
+    });
+
+    it("requires --event-id flag", async () => {
+      const result = await runCommand(luma, ["events", "list-coupons"]);
+      expect(result.exitCode).not.toBe(0);
+    });
+  });
+
+  describe("events create-coupon", () => {
+    it("creates a percent discount coupon", async () => {
+      const result = await runCommand(luma, [
+        "events",
+        "create-coupon",
+        "--event-id",
+        "evt-1",
+        "--code",
+        "SAVE20",
+        "--discount-type",
+        "percent",
+        "--percent-off",
+        "20",
+      ]);
+      expect(result.exitCode).toBe(0);
+      const output = JSON.parse(result.stdout);
+      expect(output.code).toBe("SAVE20");
+      expect(output.percent_off).toBe(20);
+      expect(output.id).toBeTruthy();
+    });
+
+    it("creates an amount discount coupon", async () => {
+      const result = await runCommand(luma, [
+        "events",
+        "create-coupon",
+        "--event-id",
+        "evt-1",
+        "--code",
+        "FLAT5",
+        "--discount-type",
+        "amount",
+        "--cents-off",
+        "500",
+        "--currency",
+        "usd",
+      ]);
+      expect(result.exitCode).toBe(0);
+      const output = JSON.parse(result.stdout);
+      expect(output.code).toBe("FLAT5");
+      expect(output.cents_off).toBe(500);
+      expect(output.currency).toBe("usd");
+    });
+
+    it("passes optional fields", async () => {
+      const result = await runCommand(luma, [
+        "events",
+        "create-coupon",
+        "--event-id",
+        "evt-1",
+        "--code",
+        "EARLY",
+        "--discount-type",
+        "percent",
+        "--percent-off",
+        "15",
+        "--remaining-count",
+        "50",
+        "--valid-start-at",
+        "2024-06-01T00:00:00Z",
+        "--valid-end-at",
+        "2024-12-31T23:59:59Z",
+        "--event-ticket-type-id",
+        "ett-123",
+      ]);
+      expect(result.exitCode).toBe(0);
+      const output = JSON.parse(result.stdout);
+      expect(output.remaining_count).toBe(50);
+      expect(output.valid_start_at).toBe("2024-06-01T00:00:00Z");
+      expect(output.valid_end_at).toBe("2024-12-31T23:59:59Z");
+      expect(output.event_ticket_type_id).toBe("ett-123");
+    });
+
+    it("requires --event-id flag", async () => {
+      const result = await runCommand(luma, [
+        "events",
+        "create-coupon",
+        "--code",
+        "TEST",
+        "--discount-type",
+        "percent",
+        "--percent-off",
+        "10",
+      ]);
+      expect(result.exitCode).not.toBe(0);
+    });
+
+    it("requires --code flag", async () => {
+      const result = await runCommand(luma, [
+        "events",
+        "create-coupon",
+        "--event-id",
+        "evt-1",
+        "--discount-type",
+        "percent",
+        "--percent-off",
+        "10",
+      ]);
+      expect(result.exitCode).not.toBe(0);
+    });
+
+    it("requires --discount-type flag", async () => {
+      const result = await runCommand(luma, [
+        "events",
+        "create-coupon",
+        "--event-id",
+        "evt-1",
+        "--code",
+        "TEST",
+      ]);
+      expect(result.exitCode).not.toBe(0);
+    });
+  });
+
+  describe("events update-coupon", () => {
+    it("updates a coupon by code", async () => {
+      const coupon = makeCoupon({ id: "cpn-1", code: "SAVE10" });
+      luma.eventCoupons.set("evt-1", [coupon]);
+
+      const result = await runCommand(luma, [
+        "events",
+        "update-coupon",
+        "--event-id",
+        "evt-1",
+        "--code",
+        "SAVE10",
+        "--remaining-count",
+        "50",
+      ]);
+      expect(result.exitCode).toBe(0);
+      const output = JSON.parse(result.stdout);
+      expect(output.updated).toBe(true);
+      expect(output.code).toBe("SAVE10");
+    });
+
+    it("requires --event-id flag", async () => {
+      const result = await runCommand(luma, [
+        "events",
+        "update-coupon",
+        "--code",
+        "TEST",
+      ]);
+      expect(result.exitCode).not.toBe(0);
+    });
+
+    it("requires --code flag", async () => {
+      const result = await runCommand(luma, [
+        "events",
+        "update-coupon",
+        "--event-id",
+        "evt-1",
+      ]);
+      expect(result.exitCode).not.toBe(0);
+    });
+
+    it("shows error when coupon not found", async () => {
+      const result = await runCommand(luma, [
+        "events",
+        "update-coupon",
+        "--event-id",
+        "evt-1",
+        "--code",
+        "NONEXISTENT",
+        "--remaining-count",
+        "10",
+      ]);
+      expect(result.exitCode).not.toBe(0);
+      expect(result.stderr).toContain("404");
+    });
+  });
+
   describe("events --help", () => {
     it("shows events subcommand help with available actions", async () => {
       const result = await runCommand(luma, ["events", "--help"]);
@@ -289,6 +524,9 @@ describe("events command", () => {
       expect(result.stdout).toContain("create");
       expect(result.stdout).toContain("update");
       expect(result.stdout).toContain("cancel");
+      expect(result.stdout).toContain("list-coupons");
+      expect(result.stdout).toContain("create-coupon");
+      expect(result.stdout).toContain("update-coupon");
     });
   });
 });

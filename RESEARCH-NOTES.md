@@ -548,6 +548,35 @@ All 6 fields are required in every response.
 - image-upload only generates the URL — actual upload is a separate PUT request to S3
 - image-upload content_type is optional but recommended
 
+## Event Coupon Endpoints Detail
+
+### GET /v1/event/coupons (List Event Coupons)
+- Query params: `event_id` (functionally required, evt-xxx), `pagination_cursor` (optional), `pagination_limit` (optional), `event_api_id` (deprecated)
+- Returns: paginated `{ entries: [Coupon], has_more, next_cursor }`
+- Coupon shape: same as calendar coupons — `{ id, api_id, code, remaining_count, valid_start_at, valid_end_at, percent_off, cents_off, currency, event_ticket_type_id? }`
+- `event_ticket_type_id` is NOT in the `required` array — may be absent (not just null) for non-ticket-restricted coupons
+
+### POST /v1/events/coupons/create (Create Event Coupon)
+- Note: path uses plural `/v1/events/` (inconsistency with singular list path)
+- Body: `event_id` (required), `code` (required, 1-20 chars), `discount` (required, oneOf: `{discount_type:"percent", percent_off}` or `{discount_type:"amount", cents_off, currency}`), `remaining_count` (optional, 0-1000000), `valid_start_at` (optional), `valid_end_at` (optional), `event_ticket_type_id` (optional — restricts to ticket type; if hidden, creates unlock code)
+- Returns: created Coupon object (same shape as list entries)
+- Coupon terms (discount, code, event_ticket_type_id) are immutable after creation
+
+### POST /v1/event/update-coupon (Update Event Coupon)
+- Note: path uses singular `/v1/event/` and different structure (`update-coupon` not `coupons/update`)
+- Body: `code` (required — identifies coupon), `event_id` (optional but functionally needed), `event_api_id` (deprecated), `remaining_count` (optional), `valid_start_at` (optional), `valid_end_at` (optional)
+- Returns: empty `{}`
+- Cannot change discount amount/type, code, or event_ticket_type_id
+
+### Event Coupon Endpoint Gotchas
+- Path inconsistency: list is `/v1/event/coupons` (singular), create is `/v1/events/coupons/create` (plural), update is `/v1/event/update-coupon` (different structure)
+- No delete endpoint — disable by setting remaining_count to 0 or valid_end_at to past date
+- Update identifies by `code` not `id`
+- Create remaining_count caps at 1,000,000; update allows full JS safe integer range
+- Create returns full coupon object; update returns empty `{}`
+- Coupon response flattens discount: no `discount_type` field, just `percent_off`/`cents_off`/`currency`
+- Warning: "Be careful not to have the same code on an event and on the calendar"
+
 ## Reference Projects in Codebase
 - `nori-newsletter-cli`: commander + TypeScript + vitest, factory functions for DI, Output abstraction, services/ layer
 - `nori-slack-cli`: Same patterns, includes paginate.ts and suggest.ts utilities
