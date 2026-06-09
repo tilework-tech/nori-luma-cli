@@ -202,6 +202,18 @@ describe("organization command", () => {
       expect(result.exitCode).not.toBe(0);
       expect(result.stderr).toContain("404");
     });
+
+    it("fails when destination calendar not found", async () => {
+      luma.orgEvents.push(makeOrgEvent({ id: "evt-1" }));
+
+      const result = await runCommand(luma, [
+        "organization", "transfer-event",
+        "--event-id", "evt-1",
+        "--calendar-id", "cal-nonexistent",
+      ]);
+      expect(result.exitCode).not.toBe(0);
+      expect(result.stderr).toContain("404");
+    });
   });
 
   describe("organization create-calendar", () => {

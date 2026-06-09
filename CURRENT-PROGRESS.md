@@ -12,7 +12,7 @@
 - Calendar command group (get, lookup-event, add-event, approve-event, reject-event, list-admins, list-coupons, create-coupon, update-coupon, list-event-tags, create-event-tag, update-event-tag, delete-event-tag, apply-event-tag, unapply-event-tag) with 45 passing tests
 - Contact command group (list, import, list-contact-tags, create-contact-tag, apply-contact-tag, unapply-contact-tag, update-contact-tag, delete-contact-tag) with 28 passing tests
 - Membership command group (list-tiers, add-member, update-member-status) with 13 passing tests
-- Organization command group (list-admins, list-calendars, list-events, transfer-event, create-calendar) with 18 passing tests
+- Organization command group (list-admins, list-calendars, list-events, transfer-event, create-calendar) with 19 passing tests
 - Documentation (docs.md files for all source directories)
 
 ## Next Up

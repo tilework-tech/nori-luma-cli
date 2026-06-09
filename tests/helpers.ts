@@ -940,6 +940,8 @@ export function createMockLumaService(): LumaService & {
       this.lastTransferEventParams = params;
       const event = this.orgEvents.find((e) => e.id === params.event_id);
       if (!event) throw new Error(`Luma API error 404: Event not found`);
+      const calendar = this.orgCalendars.find((c) => c.id === params.calendar_id);
+      if (!calendar) throw new Error(`Luma API error 404: Calendar not found`);
       event.calendar_id = params.calendar_id;
     },
 
