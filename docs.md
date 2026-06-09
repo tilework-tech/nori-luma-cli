@@ -36,6 +36,7 @@ Path: @/
          +-- createCalendarCommand()     @/src/commands/calendar.ts
          +-- createContactsCommand()     @/src/commands/contacts.ts
          +-- createMembershipCommand()   @/src/commands/membership.ts
+         +-- createOrganizationCommand()  @/src/commands/organization.ts
 ```
 
 ### Things to Know

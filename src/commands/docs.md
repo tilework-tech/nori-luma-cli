@@ -5,11 +5,11 @@ Path: @/src/commands
 ### Overview
 
 - Contains CLI command group definitions, each exported as a factory function that receives `LumaService` and `Output` and returns a Commander `Command`
-- Command groups cover the main Luma domain entities: events (CRUD + cancel), guests (list, get, add, update status, send invites), hosts (add, update, remove), ticket-types (CRUD + delete), calendar (settings, admins, coupons, event tags, event submissions), contacts (list, import, contact tags CRUD, tag apply/unapply), and membership (list tiers, add member, update member status)
+- Command groups cover the main Luma domain entities: events (CRUD + cancel), guests (list, get, add, update status, send invites), hosts (add, update, remove), ticket-types (CRUD + delete), calendar (settings, admins, coupons, event tags, event submissions), contacts (list, import, contact tags CRUD, tag apply/unapply), membership (list tiers, add member, update member status), and organization (org admins, org calendars, org events, transfer events, create calendars)
 
 ### How it fits into the larger codebase
 
-- `@/src/program.ts` calls each command factory (e.g., `createEventsCommand`, `createGuestsCommand`, `createHostsCommand`, `createTicketTypesCommand`, `createCalendarCommand`, `createContactsCommand`, `createMembershipCommand`) and attaches the result to the root Commander program via `addCommand`
+- `@/src/program.ts` calls each `create*Command(luma, out)` factory and attaches the result to the root Commander program via `addCommand`
 - Command factories depend on the `LumaService` interface from `@/src/services/luma.ts` and the `Output` interface from `@/src/output.ts` -- they never import concrete implementations
 - Tests in `@/tests/commands/` exercise these commands end-to-end through the `runCommand` helper, which passes a mock `LumaService` into `createProgram`
 
@@ -36,6 +36,7 @@ Path: @/src/commands
 - The `contacts` command group mirrors the pattern of `calendar` event tags for contact tags: `apply-contact-tag` and `unapply-contact-tag` accept `--tag` (ID or name) and identify contacts via `--emails` or `--user-ids` as comma-separated strings, split into arrays in the action handler. The `contacts import` command maps positional `--names` to `--emails` by array index, building a `{ email, name? }[]` for the service
 - The `contacts list` command passes `--tags` as comma-separated values that get split into an array, unlike most other list commands that use simple scalar filters. The `listContacts` service method handles these as repeated query params (via `url.searchParams.append`) rather than a single comma-joined value
 - The `membership update-member-status` command constructs its own confirmation JSON (`{ updated: true, user_id, status }`) because the Luma API returns an empty response for this endpoint. The `membership add-member` command maps `--skip-payment` to `undefined` (not `false`) when absent, so the field is omitted from the API request body
+- The `organization` command group manages org-level resources (requires an org-scoped API key). `list-admins` has no pagination (returns all admins). `list-calendars` and `list-events` use cursor-based pagination. `transfer-event` returns no data from the API, so the command outputs synthetic confirmation JSON (`{ transferred: true, event_id, calendar_id }`). `create-calendar` uses a v2 API endpoint (`/v2/organizations/calendars/create`) and accepts an optional `--tint-color` that is write-only (sent to the API but not present in the response). The `LumaOrgEvent` type returned by `list-events` is richer than the standard `LumaEvent` (includes `calendar_id`, `description_md`, `registration_questions`, `visibility`, `feedback_email`)
 - All output is JSON via `JSON.stringify(result, null, 2)` -- there is no table or human-friendly formatting mode
 
 Created and maintained by Nori.

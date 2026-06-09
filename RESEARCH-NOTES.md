@@ -398,6 +398,51 @@ Required response fields: `id`, `name`, `type`
 - `user_id` field in update-status accepts either a Luma user ID or an email address
 - `registration_answers` has complex discriminated union schema per question_type but is rarely needed for basic member add
 
+## Organization Endpoints Detail
+
+### GET /v1/organizations/admins/list (List Organization Admins)
+- No query params — organization determined by API key (org-scoped key required)
+- Returns: `{ entries: [{ id, name (nullable), avatar_url, email, first_name (nullable), last_name (nullable), api_id (deprecated) }] }`
+- No pagination — returns all admins in a single response
+- Admin object shape matches calendar admins from `/v1/calendar/admins/list`
+- `api_id` is deprecated in favor of `id`
+
+### GET /v1/organizations/calendars/list (List Organization Calendars)
+- Query params: `pagination_cursor` (optional), `pagination_limit` (optional)
+- Returns: paginated `{ entries: [Calendar], has_more, next_cursor }`
+- Calendar object shape identical to `GET /v1/calendars/get` response (id, name, slug, avatar_url, url, description, social_image_url, cover_image_url, is_personal, location, coordinate, instagram_handle, twitter_handle, youtube_handle, website)
+- `next_cursor` only present when `has_more` is true
+
+### GET /v1/organizations/events/list (List Organization Events)
+- Query params: `before` (ISO 8601 datetime, optional), `after` (ISO 8601 datetime, optional), `pagination_cursor` (optional), `pagination_limit` (optional), `sort_direction` (enum: asc/desc/asc nulls last/desc nulls last, optional)
+- Returns: paginated `{ entries: [OrgEvent], has_more, next_cursor }`
+- OrgEvent shape (richer than regular event): `{ platform: "luma", id, user_id, calendar_id, start_at, duration_interval, end_at, created_at, timezone, name, description, description_md, geo_address_json (nullable object), coordinate (nullable), meeting_url (nullable), cover_url, registration_questions (complex array), url, visibility (enum: public/members-only/private), feedback_email: {enabled, delay?} }`
+- Also includes deprecated fields: `api_id`, `user_api_id`, `calendar_api_id`, `zoom_meeting_url`, `geo_latitude`, `geo_longitude`
+- No `sort_column` param — sorting is presumably by event time
+- No `calendar_id` filter — returns all events across all org calendars
+
+### POST /v1/organizations/events/transfer-calendar (Transfer Event)
+- Body: `event_id` (required, evt-xxx), `calendar_id` (required, cal-xxx — destination calendar, must belong to org)
+- Returns: empty `{}`
+- Both source and destination calendars must belong to the same organization
+- No confirmation data returned
+
+### POST /v2/organizations/calendars/create (Create Calendar)
+- Note: v2 endpoint (only v2 in organizations group)
+- Body: `name` (required), `slug` (optional), `description` (optional), `avatar_url` (optional, URI — must be Luma CDN URL), `tint_color` (optional, hex color e.g. '#E3CBEF')
+- Returns: full Calendar object (same shape as entries in calendars/list)
+- `tint_color` is write-only — appears in request but NOT in response
+- Fields like location, coordinate, social handles are not settable via create — returned as defaults/nulls
+
+### Organization Endpoint Gotchas
+- All org endpoints require org-scoped API key (500 req/min rate limit)
+- No organization CRUD — org is implicit from API key
+- No list-members endpoint for org — only calendar-level membership
+- No update/delete for org calendars
+- Events list returns a richer object than regular event GET (includes description_md, registration_questions, feedback_email, calendar_id)
+- `sort_direction` enum includes space-containing values: "asc nulls last", "desc nulls last"
+- Transfer endpoint has no rollback mechanism
+
 ## Reference Projects in Codebase
 - `nori-newsletter-cli`: commander + TypeScript + vitest, factory functions for DI, Output abstraction, services/ layer
 - `nori-slack-cli`: Same patterns, includes paginate.ts and suggest.ts utilities

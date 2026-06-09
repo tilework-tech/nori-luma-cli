@@ -423,6 +423,55 @@ export interface UpdateMemberStatusParams {
   status: string;
 }
 
+export interface LumaOrgEvent {
+  platform: string;
+  id: string;
+  user_id: string;
+  calendar_id: string;
+  start_at: string;
+  duration_interval: string;
+  end_at: string;
+  created_at: string;
+  timezone: string;
+  name: string;
+  description: string;
+  description_md: string;
+  geo_address_json: Record<string, unknown> | null;
+  coordinate: { longitude: number; latitude: number } | null;
+  meeting_url: string | null;
+  cover_url: string;
+  registration_questions: unknown[];
+  url: string;
+  visibility: string;
+  feedback_email: { enabled: boolean; delay?: string };
+}
+
+export interface ListOrgEventsParams {
+  before?: string;
+  after?: string;
+  paginationCursor?: string;
+  paginationLimit?: number;
+  sortDirection?: string;
+}
+
+export interface TransferCalendarParams {
+  event_id: string;
+  calendar_id: string;
+}
+
+export interface CreateCalendarParams {
+  name: string;
+  slug?: string;
+  description?: string;
+  avatar_url?: string;
+  tint_color?: string;
+}
+
+export interface ListOrgCalendarsParams {
+  paginationCursor?: string;
+  paginationLimit?: number;
+}
+
 export interface LumaService {
   listEvents(params?: ListEventsParams): Promise<PaginatedResponse<{ event: LumaEvent }>>;
   getEvent(id: string): Promise<{ event: LumaEvent }>;
@@ -469,6 +518,11 @@ export interface LumaService {
   listMembershipTiers(params?: ListMembershipTiersParams): Promise<PaginatedResponse<LumaMembershipTier>>;
   addMember(params: AddMemberParams): Promise<AddMemberResponse>;
   updateMemberStatus(params: UpdateMemberStatusParams): Promise<void>;
+  listOrgAdmins(): Promise<{ entries: LumaCalendarAdmin[] }>;
+  listOrgCalendars(params?: ListOrgCalendarsParams): Promise<PaginatedResponse<LumaCalendar>>;
+  listOrgEvents(params?: ListOrgEventsParams): Promise<PaginatedResponse<LumaOrgEvent>>;
+  transferEventCalendar(params: TransferCalendarParams): Promise<void>;
+  createCalendar(params: CreateCalendarParams): Promise<LumaCalendar>;
 }
 
 export function createLumaService(apiKey: string): LumaService {
@@ -748,6 +802,35 @@ export function createLumaService(apiKey: string): LumaService {
 
     async updateMemberStatus(params: UpdateMemberStatusParams) {
       await request<void>("POST", "/v1/memberships/members/update-status", params as unknown as Record<string, unknown>);
+    },
+
+    async listOrgAdmins() {
+      return request<{ entries: LumaCalendarAdmin[] }>("GET", "/v1/organizations/admins/list");
+    },
+
+    async listOrgCalendars(params?: ListOrgCalendarsParams) {
+      const query: Record<string, string> = {};
+      if (params?.paginationLimit) query.pagination_limit = String(params.paginationLimit);
+      if (params?.paginationCursor) query.pagination_cursor = params.paginationCursor;
+      return request<PaginatedResponse<LumaCalendar>>("GET", "/v1/organizations/calendars/list", undefined, query);
+    },
+
+    async listOrgEvents(params?: ListOrgEventsParams) {
+      const query: Record<string, string> = {};
+      if (params?.before) query.before = params.before;
+      if (params?.after) query.after = params.after;
+      if (params?.paginationLimit) query.pagination_limit = String(params.paginationLimit);
+      if (params?.paginationCursor) query.pagination_cursor = params.paginationCursor;
+      if (params?.sortDirection) query.sort_direction = params.sortDirection;
+      return request<PaginatedResponse<LumaOrgEvent>>("GET", "/v1/organizations/events/list", undefined, query);
+    },
+
+    async transferEventCalendar(params: TransferCalendarParams) {
+      await request<void>("POST", "/v1/organizations/events/transfer-calendar", params as unknown as Record<string, unknown>);
+    },
+
+    async createCalendar(params: CreateCalendarParams) {
+      return request<LumaCalendar>("POST", "/v2/organizations/calendars/create", params as unknown as Record<string, unknown>);
     },
   };
 }

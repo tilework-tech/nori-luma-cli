@@ -47,6 +47,11 @@ import type {
   ListMembershipTiersParams,
   AddMemberParams,
   UpdateMemberStatusParams,
+  LumaOrgEvent,
+  ListOrgEventsParams,
+  ListOrgCalendarsParams,
+  TransferCalendarParams,
+  CreateCalendarParams,
 } from "../src/services/luma.js";
 
 export function createTestOutput(): Output & {
@@ -236,6 +241,32 @@ export function makeMembershipTier(overrides: Partial<LumaMembershipTier> = {}):
   };
 }
 
+export function makeOrgEvent(overrides: Partial<LumaOrgEvent> = {}): LumaOrgEvent {
+  return {
+    platform: "luma",
+    id: "evt-test-123",
+    user_id: "usr-test-123",
+    calendar_id: "cal-test-123",
+    start_at: "2024-06-15T18:00:00.000Z",
+    duration_interval: "PT2H",
+    end_at: "2024-06-15T20:00:00.000Z",
+    created_at: "2024-06-01T00:00:00.000Z",
+    timezone: "America/New_York",
+    name: "Test Org Event",
+    description: "<p>Test event</p>",
+    description_md: "Test event",
+    geo_address_json: null,
+    coordinate: null,
+    meeting_url: null,
+    cover_url: "https://example.com/cover.png",
+    registration_questions: [],
+    url: "https://lu.ma/test-event",
+    visibility: "public",
+    feedback_email: { enabled: false },
+    ...overrides,
+  };
+}
+
 export interface MockCalendarEvent {
   id: string;
   api_id: string;
@@ -258,12 +289,18 @@ export function createMockLumaService(): LumaService & {
   contactTags: LumaContactTag[];
   membershipTiers: LumaMembershipTier[];
   members: Map<string, { membership_id: string; status: string; tier_id: string; user_id: string }>;
+  orgAdmins: LumaCalendarAdmin[];
+  orgCalendars: LumaCalendar[];
+  orgEvents: LumaOrgEvent[];
   lastAddGuestsParams: AddGuestsParams | null;
   lastSendInvitesParams: SendInvitesParams | null;
   lastRejectEventParams: RejectEventParams | null;
   lastImportContactsParams: ImportContactsParams | null;
   lastAddMemberParams: AddMemberParams | null;
   lastUpdateMemberStatusParams: UpdateMemberStatusParams | null;
+  lastTransferEventParams: TransferCalendarParams | null;
+  lastCreateCalendarParams: CreateCalendarParams | null;
+  lastListOrgEventsParams: ListOrgEventsParams | null;
 } {
   const events = new Map<string, LumaEvent>();
   const cancellationTokens = new Map<string, string>();
@@ -286,12 +323,18 @@ export function createMockLumaService(): LumaService & {
     contactTags: [],
     membershipTiers: [],
     members: new Map(),
+    orgAdmins: [],
+    orgCalendars: [],
+    orgEvents: [],
     lastAddGuestsParams: null,
     lastSendInvitesParams: null,
     lastRejectEventParams: null,
     lastImportContactsParams: null,
     lastAddMemberParams: null,
     lastUpdateMemberStatusParams: null,
+    lastTransferEventParams: null,
+    lastCreateCalendarParams: null,
+    lastListOrgEventsParams: null,
 
     async listEvents(params?: ListEventsParams) {
       let entries = Array.from(events.values()).map((event) => ({ event }));
@@ -853,6 +896,64 @@ export function createMockLumaService(): LumaService & {
       const member = this.members.get(params.user_id);
       if (!member) throw new Error(`Luma API error 404: Member not found`);
       member.status = params.status;
+    },
+
+    async listOrgAdmins() {
+      return { entries: this.orgAdmins };
+    },
+
+    async listOrgCalendars(params?: ListOrgCalendarsParams) {
+      const limit = params?.paginationLimit ?? 50;
+      const startIndex = params?.paginationCursor ? parseInt(params.paginationCursor, 10) : 0;
+      const page = this.orgCalendars.slice(startIndex, startIndex + limit);
+      const hasMore = startIndex + limit < this.orgCalendars.length;
+      return {
+        entries: page,
+        has_more: hasMore,
+        next_cursor: hasMore ? String(startIndex + limit) : null,
+      };
+    },
+
+    async listOrgEvents(params?: ListOrgEventsParams) {
+      this.lastListOrgEventsParams = params ?? null;
+      let entries = [...this.orgEvents];
+
+      if (params?.after) {
+        entries = entries.filter((e) => e.start_at >= params.after!);
+      }
+      if (params?.before) {
+        entries = entries.filter((e) => e.start_at <= params.before!);
+      }
+
+      const limit = params?.paginationLimit ?? 50;
+      const startIndex = params?.paginationCursor ? parseInt(params.paginationCursor, 10) : 0;
+      const page = entries.slice(startIndex, startIndex + limit);
+      const hasMore = startIndex + limit < entries.length;
+      return {
+        entries: page,
+        has_more: hasMore,
+        next_cursor: hasMore ? String(startIndex + limit) : null,
+      };
+    },
+
+    async transferEventCalendar(params: TransferCalendarParams) {
+      this.lastTransferEventParams = params;
+      const event = this.orgEvents.find((e) => e.id === params.event_id);
+      if (!event) throw new Error(`Luma API error 404: Event not found`);
+      event.calendar_id = params.calendar_id;
+    },
+
+    async createCalendar(params: CreateCalendarParams) {
+      this.lastCreateCalendarParams = params;
+      const cal = makeCalendar({
+        id: `cal-${this.orgCalendars.length + 1}`,
+        name: params.name,
+        slug: params.slug ?? null,
+        description: params.description ?? null,
+        avatar_url: params.avatar_url ?? null,
+      });
+      this.orgCalendars.push(cal);
+      return cal;
     },
   };
 }

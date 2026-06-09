@@ -16,7 +16,7 @@ Path: @/src
 ### Core Implementation
 
 - **`index.ts`** -- Entry point. Loads config, creates service and output, runs Commander. Has a single try/catch at the process boundary to handle missing API key or unexpected startup errors
-- **`program.ts`** -- Builds the Commander `Command` tree. Registers all command groups (events, guests, hosts, ticket-types, calendar, contacts, membership). Recursively applies `configureCommandOutput` to redirect all Commander output through the `Output` interface
+- **`program.ts`** -- Builds the Commander `Command` tree. Registers all command groups (events, guests, hosts, ticket-types, calendar, contacts, membership, organization). Recursively applies `configureCommandOutput` to redirect all Commander output through the `Output` interface
 - **`output.ts`** -- Defines the `Output` interface (`write`, `error`, `setExitCode`) and the `createProcessOutput` factory that maps to `process.stdout`/`process.stderr`. This is the seam that makes the entire CLI testable without process-level mocking
 - **`config.ts`** -- Reads `LUMA_API_KEY` from `process.env`. Throws a descriptive error if missing. Returns a `LumaConfig` object. No other config sources exist yet
 - **`parse.ts`** -- Shared parsing utilities used by command action handlers. Provides `parseIntStrict` which wraps `parseInt` and throws Commander's `InvalidArgumentError` on non-numeric input, used for `--limit` and similar numeric flags
