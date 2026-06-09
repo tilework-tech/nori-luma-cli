@@ -443,6 +443,75 @@ Required response fields: `id`, `name`, `type`
 - `sort_direction` enum includes space-containing values: "asc nulls last", "desc nulls last"
 - Transfer endpoint has no rollback mechanism
 
+## Webhook Endpoints Detail
+
+### GET /v1/webhooks/list (List Webhooks)
+- Query params: `pagination_cursor` (optional), `pagination_limit` (optional)
+- Returns: paginated `{ entries: [Webhook], has_more, next_cursor }`
+- `next_cursor` only present when `has_more` is true
+
+### GET /v2/webhooks/get (Get Webhook)
+- Query params: `id` (required)
+- Returns: flat Webhook object (NOT wrapped)
+
+### POST /v2/webhooks/create (Create Webhook)
+- Body: `url` (required, format: uri, pattern: "^http.*"), `event_types` (required, string[], minItems: 1, enum values)
+- Returns: flat Webhook object
+
+### POST /v2/webhooks/update (Update Webhook)
+- Body: `id` (required), `event_types` (optional, string[], minItems: 1), `status` (optional, enum: active/paused)
+- Returns: flat Webhook object
+- Note: `url` is NOT updatable — only event_types and status can be changed
+
+### POST /v1/webhooks/delete (Delete Webhook)
+- Body: `id` (required)
+- Returns: empty `{}`
+
+### Webhook Object Shape
+```json
+{
+  "id": "string",
+  "url": "string",
+  "event_types": ["string"],
+  "status": "active | paused",
+  "secret": "string",
+  "created_at": "ISO 8601 datetime"
+}
+```
+All 6 fields are required in every response.
+
+### Event Types Enum (9 values)
+- `*` — wildcard, subscribe to all
+- `calendar.event.added`
+- `calendar.person.subscribed`
+- `event.canceled`
+- `event.created`
+- `event.updated`
+- `guest.registered`
+- `guest.updated`
+- `ticket.registered`
+
+### Webhook Security
+- Signing secret prefix: `whsec_`
+- Headers on delivery: `Webhook-Signature` (format: `t=<timestamp>,v1=<signature>`), `Webhook-Id`, `Webhook-Timestamp`
+- Verification: HMAC-SHA256 of `"{timestamp}.{raw_body}"` with base64-decoded secret
+- Secret returned on every GET/list response (not just create)
+
+### Webhook Retry Policy
+- Max 3 retries with exponential backoff: 1min, 2min, 4min
+- HTTP 410 Gone auto-pauses the webhook
+- 5-second timeout for endpoint responses
+- Must return 2xx for acknowledgment
+
+### Webhook Endpoint Gotchas
+- Mixed API versions: list and delete are v1; get, create, update are v2
+- URL is not updatable after creation (must delete and recreate)
+- Delete uses POST method (consistent with Luma's pattern)
+- List wraps in entries/has_more/next_cursor; get/create/update return flat objects
+- Status enum: only "active" or "paused"
+- Webhook ID prefix: `wbhk`
+- Webhooks exclusively available to Luma Plus subscribers
+
 ## Reference Projects in Codebase
 - `nori-newsletter-cli`: commander + TypeScript + vitest, factory functions for DI, Output abstraction, services/ layer
 - `nori-slack-cli`: Same patterns, includes paginate.ts and suggest.ts utilities

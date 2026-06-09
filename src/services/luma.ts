@@ -423,6 +423,31 @@ export interface UpdateMemberStatusParams {
   status: string;
 }
 
+export interface LumaWebhook {
+  id: string;
+  url: string;
+  event_types: string[];
+  status: string;
+  secret: string;
+  created_at: string;
+}
+
+export interface ListWebhooksParams {
+  paginationCursor?: string;
+  paginationLimit?: number;
+}
+
+export interface CreateWebhookParams {
+  url: string;
+  event_types: string[];
+}
+
+export interface UpdateWebhookParams {
+  id: string;
+  event_types?: string[];
+  status?: string;
+}
+
 export interface LumaOrgEvent {
   platform: string;
   id: string;
@@ -523,6 +548,11 @@ export interface LumaService {
   listOrgEvents(params?: ListOrgEventsParams): Promise<PaginatedResponse<LumaOrgEvent>>;
   transferEventCalendar(params: TransferCalendarParams): Promise<void>;
   createCalendar(params: CreateCalendarParams): Promise<LumaCalendar>;
+  listWebhooks(params?: ListWebhooksParams): Promise<PaginatedResponse<LumaWebhook>>;
+  getWebhook(id: string): Promise<LumaWebhook>;
+  createWebhook(params: CreateWebhookParams): Promise<LumaWebhook>;
+  updateWebhook(params: UpdateWebhookParams): Promise<LumaWebhook>;
+  deleteWebhook(id: string): Promise<void>;
 }
 
 export function createLumaService(apiKey: string): LumaService {
@@ -831,6 +861,29 @@ export function createLumaService(apiKey: string): LumaService {
 
     async createCalendar(params: CreateCalendarParams) {
       return request<LumaCalendar>("POST", "/v2/organizations/calendars/create", params as unknown as Record<string, unknown>);
+    },
+
+    async listWebhooks(params?: ListWebhooksParams) {
+      const query: Record<string, string> = {};
+      if (params?.paginationLimit) query.pagination_limit = String(params.paginationLimit);
+      if (params?.paginationCursor) query.pagination_cursor = params.paginationCursor;
+      return request<PaginatedResponse<LumaWebhook>>("GET", "/v1/webhooks/list", undefined, query);
+    },
+
+    async getWebhook(id: string) {
+      return request<LumaWebhook>("GET", "/v2/webhooks/get", undefined, { id });
+    },
+
+    async createWebhook(params: CreateWebhookParams) {
+      return request<LumaWebhook>("POST", "/v2/webhooks/create", params as unknown as Record<string, unknown>);
+    },
+
+    async updateWebhook(params: UpdateWebhookParams) {
+      return request<LumaWebhook>("POST", "/v2/webhooks/update", params as unknown as Record<string, unknown>);
+    },
+
+    async deleteWebhook(id: string) {
+      await request<void>("POST", "/v1/webhooks/delete", { id });
     },
   };
 }

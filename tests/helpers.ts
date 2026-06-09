@@ -52,6 +52,10 @@ import type {
   ListOrgCalendarsParams,
   TransferCalendarParams,
   CreateCalendarParams,
+  LumaWebhook,
+  ListWebhooksParams,
+  CreateWebhookParams,
+  UpdateWebhookParams,
 } from "../src/services/luma.js";
 
 export function createTestOutput(): Output & {
@@ -267,6 +271,18 @@ export function makeOrgEvent(overrides: Partial<LumaOrgEvent> = {}): LumaOrgEven
   };
 }
 
+export function makeWebhook(overrides: Partial<LumaWebhook> = {}): LumaWebhook {
+  return {
+    id: "wh-test-123",
+    url: "https://example.com/webhook",
+    event_types: ["guest.registered"],
+    status: "active",
+    secret: "whsec_test_secret",
+    created_at: "2024-06-01T00:00:00.000Z",
+    ...overrides,
+  };
+}
+
 export interface MockCalendarEvent {
   id: string;
   api_id: string;
@@ -292,6 +308,7 @@ export function createMockLumaService(): LumaService & {
   orgAdmins: LumaCalendarAdmin[];
   orgCalendars: LumaCalendar[];
   orgEvents: LumaOrgEvent[];
+  webhooks: LumaWebhook[];
   lastAddGuestsParams: AddGuestsParams | null;
   lastSendInvitesParams: SendInvitesParams | null;
   lastRejectEventParams: RejectEventParams | null;
@@ -301,6 +318,8 @@ export function createMockLumaService(): LumaService & {
   lastTransferEventParams: TransferCalendarParams | null;
   lastCreateCalendarParams: CreateCalendarParams | null;
   lastListOrgEventsParams: ListOrgEventsParams | null;
+  lastCreateWebhookParams: CreateWebhookParams | null;
+  lastUpdateWebhookParams: UpdateWebhookParams | null;
 } {
   const events = new Map<string, LumaEvent>();
   const cancellationTokens = new Map<string, string>();
@@ -326,6 +345,7 @@ export function createMockLumaService(): LumaService & {
     orgAdmins: [],
     orgCalendars: [],
     orgEvents: [],
+    webhooks: [],
     lastAddGuestsParams: null,
     lastSendInvitesParams: null,
     lastRejectEventParams: null,
@@ -335,6 +355,8 @@ export function createMockLumaService(): LumaService & {
     lastTransferEventParams: null,
     lastCreateCalendarParams: null,
     lastListOrgEventsParams: null,
+    lastCreateWebhookParams: null,
+    lastUpdateWebhookParams: null,
 
     async listEvents(params?: ListEventsParams) {
       let entries = Array.from(events.values()).map((event) => ({ event }));
@@ -956,6 +978,53 @@ export function createMockLumaService(): LumaService & {
       });
       this.orgCalendars.push(cal);
       return cal;
+    },
+
+    async listWebhooks(params?: ListWebhooksParams) {
+      const limit = params?.paginationLimit ?? 50;
+      const startIndex = params?.paginationCursor ? parseInt(params.paginationCursor, 10) : 0;
+      const page = this.webhooks.slice(startIndex, startIndex + limit);
+      const hasMore = startIndex + limit < this.webhooks.length;
+      return {
+        entries: page,
+        has_more: hasMore,
+        next_cursor: hasMore ? String(startIndex + limit) : null,
+      };
+    },
+
+    async getWebhook(id: string) {
+      const webhook = this.webhooks.find((w) => w.id === id);
+      if (!webhook) throw new Error(`Luma API error 404: Webhook not found`);
+      return webhook;
+    },
+
+    async createWebhook(params: CreateWebhookParams) {
+      this.lastCreateWebhookParams = params;
+      const webhook = makeWebhook({
+        id: `wh-${this.webhooks.length + 1}`,
+        url: params.url,
+        event_types: params.event_types,
+        status: "active",
+        secret: `whsec_${this.webhooks.length + 1}`,
+        created_at: "2024-06-01T00:00:00.000Z",
+      });
+      this.webhooks.push(webhook);
+      return webhook;
+    },
+
+    async updateWebhook(params: UpdateWebhookParams) {
+      this.lastUpdateWebhookParams = params;
+      const webhook = this.webhooks.find((w) => w.id === params.id);
+      if (!webhook) throw new Error(`Luma API error 404: Webhook not found`);
+      if (params.event_types !== undefined) webhook.event_types = params.event_types;
+      if (params.status !== undefined) webhook.status = params.status;
+      return webhook;
+    },
+
+    async deleteWebhook(id: string) {
+      const idx = this.webhooks.findIndex((w) => w.id === id);
+      if (idx === -1) throw new Error(`Luma API error 404: Webhook not found`);
+      this.webhooks.splice(idx, 1);
     },
   };
 }
