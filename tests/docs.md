@@ -16,7 +16,7 @@ Path: @/tests
 ### Core Implementation
 
 - **`helpers.ts`** is the test infrastructure backbone, providing:
-  - `createMockLumaService()` -- Returns a `LumaService` implementation backed by in-memory Maps and arrays for direct state manipulation in test setup. Maps are used for entities that need key-based lookup (e.g., `.events`, `.guests`, `.members`, `.entityLookupResults`), while arrays are used for collection-style entities (e.g., `.calendarAdmins`, `.orgCalendars`, `.orgEvents`, `.webhooks`). Also exposes singleton objects for single-resource endpoints (`.calendar`, `.selfUser`)
+  - `createMockLumaService()` -- Returns a `LumaService` implementation backed by in-memory Maps and arrays for direct state manipulation in test setup. Maps are used for entities that need key-based lookup (e.g., `.events`, `.guests`, `.members`, `.eventCoupons`, `.entityLookupResults`), while arrays are used for collection-style entities (e.g., `.calendarAdmins`, `.calendarCoupons`, `.orgCalendars`, `.orgEvents`, `.webhooks`). Also exposes singleton objects for single-resource endpoints (`.calendar`, `.selfUser`)
   - `createTestOutput()` -- Returns an `Output` implementation that accumulates writes into `.stdout` and `.stderr` string properties
   - `runCommand(luma, args)` -- Full integration helper: creates test output, builds the program, applies `exitOverride()` to all commands, runs `parseAsync`, and returns `{ stdout, stderr, exitCode }`
   - Factory functions (e.g., `makeEvent()`, `makeGuest()`, `makeOrgEvent()`, `makeWebhook()`, `makeSelfUser()`) -- Create domain objects with sensible defaults and partial override support; one factory per domain type

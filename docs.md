@@ -38,6 +38,7 @@ Path: @/
          +-- createMembershipCommand()   @/src/commands/membership.ts
          +-- createOrganizationCommand()  @/src/commands/organization.ts
          +-- createWebhookCommand()       @/src/commands/webhook.ts
+         +-- createUtilityCommand()      @/src/commands/utility.ts
 ```
 
 ### Things to Know

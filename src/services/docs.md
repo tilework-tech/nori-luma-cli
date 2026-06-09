@@ -5,7 +5,7 @@ Path: @/src/services
 ### Overview
 
 - Contains API client interfaces and their concrete implementations for external services
-- Has one service (`luma.ts`) that wraps the Luma public REST API (`https://public-api.luma.com`), providing complete coverage of all Luma API endpoints: events, guests, hosts, ticket types, calendar management, contacts, memberships, organization management, webhooks, and utility endpoints (user identity, entity lookup, image upload)
+- Has one service (`luma.ts`) that wraps the Luma public REST API (`https://public-api.luma.com`), providing complete coverage of all Luma API endpoints: events (including event-scoped coupons), guests, hosts, ticket types, calendar management (including calendar-scoped coupons), contacts, memberships, organization management, webhooks, and utility endpoints (user identity, entity lookup, image upload)
 
 ### How it fits into the larger codebase
 
@@ -37,6 +37,9 @@ Path: @/src/services
 | `updateEvent`          | POST        | `/v1/event/update`              |
 | `requestCancellation`  | POST        | `/v1/event/cancel/request`      |
 | `cancelEvent`          | POST        | `/v1/event/cancel`              |
+| `listEventCoupons`     | GET         | `/v1/event/coupons`             |
+| `createEventCoupon`    | POST        | `/v1/events/coupons/create`     |
+| `updateEventCoupon`    | POST        | `/v1/event/update-coupon`       |
 | `listGuests`           | GET         | `/v1/event/get-guests`          |
 | `getGuest`             | GET         | `/v1/events/guests/get`         |
 | `addGuests`            | POST        | `/v1/event/add-guests`          |
@@ -99,6 +102,7 @@ Path: @/src/services
 - Cancellation is a two-step protocol enforced by the Luma API: first `requestCancellation` returns a `cancellation_token`, then `cancelEvent` must be called with both the event ID and that token
 - The ticket type endpoints split across `/v1/events/` (list, get, create, update) and `/v1/event/` (delete) -- this is a known Luma API inconsistency, not a typo
 - Calendar endpoints similarly split: `getCalendar` uses `/v1/calendars/get` (plural) while most others use `/v1/calendar/` (singular). `createCoupon` uses `/v1/calendars/coupons/create` (plural) but `updateCoupon` uses `/v1/calendar/coupons/update` (singular) -- again a Luma API inconsistency
+- Event coupon endpoints exhibit the same path inconsistency: `listEventCoupons` uses `/v1/event/coupons`, `createEventCoupon` uses `/v1/events/coupons/create` (plural), and `updateEventCoupon` uses `/v1/event/update-coupon` (different path structure entirely). Event coupons share the `LumaCoupon` response type with calendar coupons but are scoped to a single event via `event_id`, while calendar coupons are implicitly scoped by the API key. `CreateEventCouponParams` uses the same discriminated union discount pattern as `CreateCouponParams`
 - Some list endpoints return `{ entries: T[] }` without pagination (e.g., `listTicketTypes`, `listAdmins`, `listEventTags`, `listContactTags`, `listOrgAdmins`), while others return `PaginatedResponse<T>` with cursor-based pagination (e.g., `listEvents`, `listGuests`, `listWebhooks`, `listOrgCalendars`, `listOrgEvents`)
 - `addEventToCalendar` accepts a discriminated union param type (`AddEventLumaParams | AddEventExternalParams`) keyed on `platform: "luma" | "external"` -- the two shapes have completely different fields
 - `CreateCouponParams.discount` is a discriminated union keyed on `discount_type: "percent" | "amount"` -- percent discounts carry `percent_off`, amount discounts carry `cents_off` and `currency`
