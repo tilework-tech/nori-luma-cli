@@ -520,7 +520,7 @@ export interface LumaEntityEvent {
   api_id: string;
   name: string;
   slug: string;
-  cover_url: string;
+  cover_url: string | null;
   start_at: string;
   end_at: string;
 }

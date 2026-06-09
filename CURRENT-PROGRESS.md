@@ -14,7 +14,7 @@
 - Membership command group (list-tiers, add-member, update-member-status) with 13 passing tests
 - Organization command group (list-admins, list-calendars, list-events, transfer-event, create-calendar) with 19 passing tests
 - Webhook command group (list, get, create, update, delete) with 18 passing tests
-- Utility command group (get-self, entity-lookup, image-upload) with 10 passing tests
+- Utility command group (get-self, entity-lookup, image-upload) with 9 passing tests
 - Documentation (docs.md files for all source directories)
 
 ## Planned (all completed)
