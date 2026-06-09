@@ -218,7 +218,7 @@ export function createCalendarCommand(luma: LumaService, out: Output): Command {
     .requiredOption("--tag <tag>", "Tag ID or tag name")
     .option("--event-ids <ids>", "Comma-separated list of event IDs")
     .action(async (opts) => {
-      const eventIds = opts.eventIds ? opts.eventIds.split(",") : undefined;
+      const eventIds = opts.eventIds ? opts.eventIds.split(",").map((s: string) => s.trim()) : undefined;
       const result = await luma.applyEventTag({
         tag: opts.tag,
         event_ids: eventIds,
@@ -232,7 +232,7 @@ export function createCalendarCommand(luma: LumaService, out: Output): Command {
     .requiredOption("--tag <tag>", "Tag ID or tag name")
     .option("--event-ids <ids>", "Comma-separated list of event IDs")
     .action(async (opts) => {
-      const eventIds = opts.eventIds ? opts.eventIds.split(",") : undefined;
+      const eventIds = opts.eventIds ? opts.eventIds.split(",").map((s: string) => s.trim()) : undefined;
       const result = await luma.unapplyEventTag({
         tag: opts.tag,
         event_ids: eventIds,

@@ -350,7 +350,7 @@ export interface LumaService {
   createCoupon(params: CreateCouponParams): Promise<LumaCoupon>;
   updateCoupon(params: UpdateCouponParams): Promise<void>;
   listEventTags(): Promise<{ entries: LumaEventTag[] }>;
-  createEventTag(params: CreateEventTagParams): Promise<{ tag_id: string }>;
+  createEventTag(params: CreateEventTagParams): Promise<{ tag_id: string; tag_api_id: string }>;
   updateEventTag(params: UpdateEventTagParams): Promise<void>;
   deleteEventTag(tagId: string): Promise<void>;
   applyEventTag(params: ApplyEventTagParams): Promise<{ applied_count: number; skipped_count: number }>;
@@ -535,7 +535,7 @@ export function createLumaService(apiKey: string): LumaService {
     },
 
     async createEventTag(params: CreateEventTagParams) {
-      return request<{ tag_id: string }>("POST", "/v1/calendar/event-tags/create", params as unknown as Record<string, unknown>);
+      return request<{ tag_id: string; tag_api_id: string }>("POST", "/v1/calendar/event-tags/create", params as unknown as Record<string, unknown>);
     },
 
     async updateEventTag(params: UpdateEventTagParams) {

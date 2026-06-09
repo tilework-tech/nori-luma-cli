@@ -591,7 +591,7 @@ export function createMockLumaService(): LumaService & {
         color: params.color ?? "blue",
       });
       this.eventTags.push(tag);
-      return { tag_id: tag.id };
+      return { tag_id: tag.id, tag_api_id: tag.api_id };
     },
 
     async updateEventTag(params: UpdateEventTagParams) {
