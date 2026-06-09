@@ -5,7 +5,7 @@ import { parseIntStrict } from "../parse.js";
 
 export function createEventsCommand(luma: LumaService, out: Output): Command {
   const events = new Command("events")
-    .description("Manage Luma events. Use this to list, get, create, update, or cancel events.")
+    .description("Manage Luma events. Use this to list, get, create, update, cancel events, and manage event coupons.")
     .addHelpText("after", `\nSource: ${import.meta.dirname}`);
 
   events
