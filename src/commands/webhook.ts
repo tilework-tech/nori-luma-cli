@@ -36,7 +36,7 @@ export function createWebhookCommand(luma: LumaService, out: Output): Command {
     .requiredOption("--url <url>", "Webhook URL (must start with http)")
     .requiredOption("--event-types <types>", "Comma-separated event types (e.g. guest.registered,event.created)")
     .action(async (opts) => {
-      const eventTypes = opts.eventTypes.split(",");
+      const eventTypes = opts.eventTypes.split(",").map((s: string) => s.trim());
       const result = await luma.createWebhook({
         url: opts.url,
         event_types: eventTypes,
@@ -55,7 +55,7 @@ export function createWebhookCommand(luma: LumaService, out: Output): Command {
         id: opts.id,
       };
       if (opts.eventTypes) {
-        params.event_types = opts.eventTypes.split(",");
+        params.event_types = opts.eventTypes.split(",").map((s: string) => s.trim());
       }
       if (opts.status) {
         params.status = opts.status;
