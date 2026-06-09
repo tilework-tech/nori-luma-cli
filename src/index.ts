@@ -7,8 +7,12 @@ import { createLumaService } from "./services/luma.js";
 
 const out = createProcessOutput();
 
+function isHelpOrVersionRequest(args: string[]): boolean {
+  return args.some((arg) => arg === "-h" || arg === "--help" || arg === "-V" || arg === "--version");
+}
+
 try {
-  const config = loadConfig();
+  const config = isHelpOrVersionRequest(process.argv.slice(2)) ? { apiKey: "" } : loadConfig();
   const luma = createLumaService(config.apiKey);
   const program = createProgram(luma, out);
   await program.parseAsync();

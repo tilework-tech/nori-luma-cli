@@ -13,6 +13,8 @@ Get your API key from: Luma App → Calendars Home → Settings → Developer �
 
 ## Usage
 
+Help and version output work before `LUMA_API_KEY` is set. API commands require the key.
+
 ```bash
 npx tsx src/index.ts <command> [subcommand] [options]
 ```
@@ -72,7 +74,7 @@ npx tsx src/index.ts utility entity-lookup --slug my-community
 npm test
 ```
 
-283 tests across 12 test files covering all command groups, parse utilities, and program-level behavior.
+287 tests across 13 test files covering all command groups, parse utilities, startup behavior, and program-level behavior.
 
 ## License
 
