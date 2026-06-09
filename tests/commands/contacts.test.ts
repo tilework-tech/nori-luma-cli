@@ -291,6 +291,19 @@ describe("contacts command", () => {
       expect(output.skipped_count).toBe(1);
     });
 
+    it("shows error when tag not found", async () => {
+      const result = await runCommand(luma, [
+        "contacts",
+        "apply-contact-tag",
+        "--tag",
+        "nonexistent",
+        "--emails",
+        "a@b.com",
+      ]);
+      expect(result.exitCode).not.toBe(0);
+      expect(result.stderr).toContain("404");
+    });
+
     it("requires --tag flag", async () => {
       const result = await runCommand(luma, [
         "contacts",
@@ -322,6 +335,19 @@ describe("contacts command", () => {
       const output = JSON.parse(result.stdout);
       expect(output.removed_count).toBe(1);
       expect(output.skipped_count).toBe(0);
+    });
+
+    it("shows error when tag not found", async () => {
+      const result = await runCommand(luma, [
+        "contacts",
+        "unapply-contact-tag",
+        "--tag",
+        "nonexistent",
+        "--emails",
+        "a@b.com",
+      ]);
+      expect(result.exitCode).not.toBe(0);
+      expect(result.stderr).toContain("404");
     });
 
     it("requires --tag flag", async () => {
