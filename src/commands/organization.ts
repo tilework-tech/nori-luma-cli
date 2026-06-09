@@ -6,7 +6,6 @@ import { parseIntStrict } from "../parse.js";
 export function createOrganizationCommand(luma: LumaService, out: Output): Command {
   const organization = new Command("organization")
     .description("Manage organization admins, calendars, and events. Use this to list org resources, transfer events between calendars, and create new calendars.")
-    .addHelpText("after", `\nSource: ${import.meta.dirname}`);
 
   organization
     .command("list-admins")

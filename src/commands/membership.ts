@@ -6,7 +6,6 @@ import { parseIntStrict } from "../parse.js";
 export function createMembershipCommand(luma: LumaService, out: Output): Command {
   const membership = new Command("membership")
     .description("Manage membership tiers and members. Use this to list tiers, add members, and update member status.")
-    .addHelpText("after", `\nSource: ${import.meta.dirname}`);
 
   membership
     .command("list-tiers")

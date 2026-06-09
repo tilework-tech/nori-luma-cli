@@ -27,12 +27,47 @@ describe("program", () => {
   it("shows suggestion for misspelled commands", async () => {
     const luma = createMockLumaService();
     const result = await runCommand(luma, ["evnts"]);
-    expect(result.stderr + result.stdout).toMatch(/did you mean/i);
+    const output = result.stderr + result.stdout;
+    expect(output).toMatch(/did you mean/i);
   });
 
   it("shows detailed error for unknown commands", async () => {
     const luma = createMockLumaService();
     const result = await runCommand(luma, ["nonexistent"]);
     expect(result.exitCode).not.toBe(0);
+  });
+
+  it("shows source location in error output for unknown command", async () => {
+    const luma = createMockLumaService();
+    const result = await runCommand(luma, ["nonexistent"]);
+    const output = result.stderr + result.stdout;
+    expect(output).toMatch(/source:/i);
+  });
+
+  it("shows 'look at the source' instructions in error output", async () => {
+    const luma = createMockLumaService();
+    const result = await runCommand(luma, ["nonexistent"]);
+    const output = result.stderr + result.stdout;
+    expect(output).toMatch(/look at the source/i);
+  });
+
+  it("shows source location in leaf subcommand help", async () => {
+    const luma = createMockLumaService();
+    const result = await runCommand(luma, ["events", "list", "--help"]);
+    expect(result.stdout).toMatch(/source:/i);
+  });
+
+  it("shows source location in error for missing required option", async () => {
+    const luma = createMockLumaService();
+    const result = await runCommand(luma, ["events", "get"]);
+    const output = result.stderr + result.stdout;
+    expect(output).toMatch(/source:/i);
+  });
+
+  it("shows suggestion for misspelled subcommand", async () => {
+    const luma = createMockLumaService();
+    const result = await runCommand(luma, ["events", "listt"]);
+    const output = result.stderr + result.stdout;
+    expect(output).toMatch(/did you mean/i);
   });
 });

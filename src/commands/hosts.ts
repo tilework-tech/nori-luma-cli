@@ -5,7 +5,6 @@ import type { Output } from "../output.js";
 export function createHostsCommand(luma: LumaService, out: Output): Command {
   const hosts = new Command("hosts")
     .description("Manage event hosts. Use this to add, update, or remove hosts from events.")
-    .addHelpText("after", `\nSource: ${import.meta.dirname}`);
 
   hosts
     .command("add")

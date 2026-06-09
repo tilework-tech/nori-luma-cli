@@ -20,7 +20,7 @@ Path: @/
 
 - Startup flow: `index.ts` calls `loadConfig()` -> `createLumaService(apiKey)` -> `createProgram(luma, out)` -> `program.parseAsync()`
 - If `LUMA_API_KEY` is missing, the process throws before Commander ever runs, producing a descriptive error with instructions for obtaining a key
-- Commander output channels (stdout/stderr, color settings) are globally redirected through the `Output` interface via a recursive `configureCommandOutput` walk over all registered subcommands in `@/src/program.ts`
+- Commander output channels (stdout/stderr, color settings), help text (source location), error output (source location hint + show-help-after-error + show-suggestion-after-error) are all globally configured via a recursive `configureCommandOutput` walk over all registered subcommands in `@/src/program.ts`
 
 ```
  index.ts

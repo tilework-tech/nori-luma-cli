@@ -6,7 +6,6 @@ import { parseIntStrict } from "../parse.js";
 export function createContactsCommand(luma: LumaService, out: Output): Command {
   const contacts = new Command("contacts")
     .description("Manage calendar contacts and contact tags. Use this to list, import, tag, and untag contacts.")
-    .addHelpText("after", `\nSource: ${import.meta.dirname}`);
 
   contacts
     .command("list")

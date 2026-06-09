@@ -6,7 +6,6 @@ import { parseIntStrict } from "../parse.js";
 export function createWebhookCommand(luma: LumaService, out: Output): Command {
   const webhook = new Command("webhook")
     .description("Manage webhook endpoints for receiving event notifications. Use this to list, create, update, and delete webhooks.")
-    .addHelpText("after", `\nSource: ${import.meta.dirname}`);
 
   webhook
     .command("list")

@@ -4,11 +4,45 @@
 
 - **Base URL**: `https://public-api.luma.com`
 - **Auth**: `x-luma-api-key` header with API key (calendar-scoped or org-scoped)
-- **Rate limits**: 200 req/min (calendar keys), 500 req/min (org keys), shared across all endpoints
+- **Rate limits**: 500 GET/5min, 100 POST/5min per calendar (tracked separately); 429 response with 1-min lockout on exceed. Enterprise customers can negotiate higher limits.
 - **Pagination**: Cursor-based with `pagination_cursor` and `pagination_limit` params; responses include `has_more` and `next_cursor`
 - **Mutations**: All writes use POST (no PUT/PATCH/DELETE HTTP methods)
-- **OpenAPI spec**: Available at `https://public-api.luma.com/openapi.json` (1.8MB, 61 endpoints)
+- **OpenAPI spec**: Available at `https://public-api.luma.com/openapi.json` — GET endpoints only (~17 paths). All 44 POST endpoints are documented only on the reference site, not in the spec.
 - **No existing TypeScript SDK** — must build from scratch
+
+## Missing CLI Parameters (Audit June 2026)
+
+Comparison of OpenAPI spec parameters against CLI command options revealed ~28 missing parameters:
+
+### events list (GET /v1/calendar/list-events) — 4 missing
+- `platforms` (array of luma/external — filter by platform)
+- `sort_column` (enum: start_at)
+- `sort_direction` (enum: asc/desc/asc nulls last/desc nulls last)
+- `status` (enum: approved/pending — filter by approval status)
+
+### events create (POST /v1/event/create) — 10 missing
+- `can_register_for_multiple_tickets` (boolean)
+- `coordinate` (object: {longitude, latitude})
+- `geo_address_json` (oneOf: manual {type, address} or google {type, place_id, description}) — exists in service interface but not wired to CLI
+- `name_requirement` (enum: full-name/first-last)
+- `phone_number_requirement` (enum: optional/required or null)
+- `registration_questions` (complex polymorphic array — 15 question types)
+- `reminders_disabled` (boolean)
+- `feedback_email` (object: {enabled, delay})
+- `show_guest_list` (boolean)
+- `tint_color` (string, hex color e.g. '#E3CBEF')
+
+### events update (POST /v1/event/update) — same 10 missing as create
+
+### calendar add-event (POST /v1/calendar/add-event, external variant) — 4 missing
+- `geo_address_json` (structured location)
+- `geo_longitude` (number)
+- `geo_latitude` (number)
+- `coordinate` (object: {longitude, latitude})
+
+### guests list (GET /v1/event/get-guests) — help text gaps
+- `--sort-direction` help says "asc, desc" but API also accepts "asc nulls last", "desc nulls last"
+- `--status` help omits "session" value that the API accepts
 
 ## API Endpoints (55+ across 10 categories)
 
@@ -587,3 +621,22 @@ All 6 fields are required in every response.
 - vitest — matches reference projects
 - Node built-in fetch — no SDK exists, native fetch sufficient for REST JSON API
 - tsx — dev runner, matches reference projects
+
+## Agentic CLI Convention Gaps (identified 2026-06-09)
+
+### Verified: All 61 API endpoints are implemented
+Cross-checked implementation against OpenAPI spec at public-api.luma.com/openapi.json. All endpoints covered.
+
+### Gap: Leaf subcommands missing source location
+Only group-level commands (events, guests, etc.) have `.addHelpText("after", ...)`. Individual subcommands like `events list`, `guests get`, etc. do NOT show source location in `--help`. The building-agentic-cli skill requires source location on EVERY subcommand.
+
+### Gap: No structured JSON error output
+When commands fail (unknown command, missing option, API error), output is plain text from Commander. The nori-slack-cli reference has structured `{ ok: false, error, message, suggestion, source }` JSON errors. For an agentic consumer, structured JSON errors are far more parseable.
+
+### Gap: No source location or "look at source" instructions on error
+The building-agentic-cli skill requires: "the source location and instructions to look at the source if anything is confusing" on mistaken input. Currently absent from error output.
+
+### nori-slack-cli reference patterns
+- `errors.ts`: `CliError` interface with `{ ok, error, message, suggestion, source }`. `formatError()` maps error types to structured JSON with context-specific suggestions.
+- `suggest.ts`: Custom Levenshtein distance implementation. `findSimilarMethods()` with dynamic threshold `Math.min(5, Math.max(2, Math.floor(input.length * 0.3)))`, returns up to 3 similar matches.
+- Commander's `.showSuggestionAfterError(true)` is used in nori-luma-cli but nori-slack-cli implements its own Levenshtein for richer control.

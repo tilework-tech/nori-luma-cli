@@ -6,7 +6,6 @@ import { parseIntStrict } from "../parse.js";
 export function createTicketTypesCommand(luma: LumaService, out: Output): Command {
   const ticketTypes = new Command("ticket-types")
     .description("Manage event ticket types. Use this to list, get, create, update, or delete ticket types.")
-    .addHelpText("after", `\nSource: ${import.meta.dirname}`);
 
   ticketTypes
     .command("list")

@@ -1,12 +1,11 @@
 import { Command } from "commander";
 import type { LumaService } from "../services/luma.js";
 import type { Output } from "../output.js";
-import { parseIntStrict } from "../parse.js";
+import { parseIntStrict, parseFloatStrict, parseJSON } from "../parse.js";
 
 export function createCalendarCommand(luma: LumaService, out: Output): Command {
   const calendar = new Command("calendar")
     .description("Manage calendar settings, admins, coupons, event tags, and event submissions.")
-    .addHelpText("after", `\nSource: ${import.meta.dirname}`);
 
   calendar
     .command("get")
@@ -43,6 +42,11 @@ export function createCalendarCommand(luma: LumaService, out: Output): Command {
     .option("--timezone <tz>", "IANA timezone (external, e.g. America/New_York)")
     .option("--submission-mode <mode>", "Submission mode: auto or pending")
     .option("--host <host>", "Host name for external platform")
+    .option("--geo-address-json <json>", "Location as JSON for external platform", parseJSON)
+    .option("--geo-latitude <number>", "Latitude for external platform", parseFloatStrict)
+    .option("--geo-longitude <number>", "Longitude for external platform", parseFloatStrict)
+    .option("--latitude <number>", "Coordinate latitude for external platform", parseFloatStrict)
+    .option("--longitude <number>", "Coordinate longitude for external platform", parseFloatStrict)
     .action(async (opts, cmd) => {
       if (opts.platform === "luma") {
         if (!opts.eventId) {
@@ -65,6 +69,14 @@ export function createCalendarCommand(luma: LumaService, out: Output): Command {
           cmd.help({ error: true });
           return;
         }
+        const hasLat = opts.latitude !== undefined;
+        const hasLon = opts.longitude !== undefined;
+        if (hasLat !== hasLon) {
+          out.error("error: --latitude and --longitude must both be provided\n");
+          out.setExitCode(1);
+          return;
+        }
+        const coordinate = hasLat ? { latitude: opts.latitude, longitude: opts.longitude } : undefined;
         const result = await luma.addEventToCalendar({
           platform: "external",
           url: opts.url,
@@ -74,6 +86,10 @@ export function createCalendarCommand(luma: LumaService, out: Output): Command {
           timezone: opts.timezone,
           submission_mode: opts.submissionMode,
           host: opts.host,
+          geo_address_json: opts.geoAddressJson,
+          geo_latitude: opts.geoLatitude,
+          geo_longitude: opts.geoLongitude,
+          coordinate,
         });
         out.write(JSON.stringify(result, null, 2) + "\n");
       }

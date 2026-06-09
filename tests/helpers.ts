@@ -343,6 +343,10 @@ export function createMockLumaService(): LumaService & {
   lastCreateWebhookParams: CreateWebhookParams | null;
   lastUpdateWebhookParams: UpdateWebhookParams | null;
   lastCreateUploadUrlParams: CreateUploadUrlParams | null;
+  lastListEventsParams: ListEventsParams | null;
+  lastCreateEventParams: CreateEventParams | null;
+  lastUpdateEventParams: UpdateEventParams | null;
+  lastAddEventParams: (AddEventLumaParams | AddEventExternalParams) | null;
 } {
   const events = new Map<string, LumaEvent>();
   const cancellationTokens = new Map<string, string>();
@@ -384,8 +388,13 @@ export function createMockLumaService(): LumaService & {
     lastCreateWebhookParams: null,
     lastUpdateWebhookParams: null,
     lastCreateUploadUrlParams: null,
+    lastListEventsParams: null,
+    lastCreateEventParams: null,
+    lastUpdateEventParams: null,
+    lastAddEventParams: null,
 
     async listEvents(params?: ListEventsParams) {
+      this.lastListEventsParams = params ?? null;
       let entries = Array.from(events.values()).map((event) => ({ event }));
 
       if (params?.after) {
@@ -418,6 +427,7 @@ export function createMockLumaService(): LumaService & {
     },
 
     async createEvent(params: CreateEventParams) {
+      this.lastCreateEventParams = params;
       const event = makeEvent({
         api_id: `evt-${Date.now()}`,
         name: params.name,
@@ -434,6 +444,7 @@ export function createMockLumaService(): LumaService & {
     },
 
     async updateEvent(params: UpdateEventParams) {
+      this.lastUpdateEventParams = params;
       const event = events.get(params.event_id);
       if (!event) {
         throw new Error(`Luma API error 404: Event not found`);
@@ -715,6 +726,7 @@ export function createMockLumaService(): LumaService & {
     },
 
     async addEventToCalendar(params: AddEventLumaParams | AddEventExternalParams) {
+      this.lastAddEventParams = params;
       const id = `calev-${Date.now()}`;
       const eventId = params.platform === "luma" ? params.event_id : `evt-ext-${Date.now()}`;
       const status = params.submission_mode === "pending" ? "pending" : "approved";

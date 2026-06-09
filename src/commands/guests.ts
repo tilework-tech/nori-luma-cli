@@ -10,17 +10,16 @@ function collectEmails(value: string, previous: string[]): string[] {
 export function createGuestsCommand(luma: LumaService, out: Output): Command {
   const guests = new Command("guests")
     .description("Manage event guests. Use this to list, get, add, update status, or send invites to guests.")
-    .addHelpText("after", `\nSource: ${import.meta.dirname}`);
 
   guests
     .command("list")
     .description("List guests for an event")
     .requiredOption("--event-id <event-id>", "Event ID (format: evt-xxx)")
-    .option("--status <status>", "Filter by approval status: approved, pending_approval, invited, declined, waitlist")
+    .option("--status <status>", "Filter by approval status: approved, session, pending_approval, invited, declined, waitlist")
     .option("--limit <number>", "Maximum number of guests per page", parseIntStrict)
     .option("--cursor <cursor>", "Pagination cursor from a previous response")
     .option("--sort-column <column>", "Sort by: name, email, created_at, registered_at, checked_in_at")
-    .option("--sort-direction <direction>", "Sort direction: asc, desc")
+    .option("--sort-direction <direction>", "Sort direction: asc, desc, asc nulls last, desc nulls last")
     .action(async (opts) => {
       const result = await luma.listGuests({
         eventId: opts.eventId,

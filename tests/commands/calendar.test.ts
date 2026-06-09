@@ -127,6 +127,47 @@ describe("calendar command", () => {
       ]);
       expect(result.exitCode).not.toBe(0);
     });
+
+    it("passes --latitude and --longitude for external event", async () => {
+      await runCommand(luma, [
+        "calendar", "add-event", "--platform", "external",
+        "--url", "https://example.com/event", "--name", "Geo Event",
+        "--start-at", "2024-07-01T18:00:00Z", "--duration-interval", "PT2H",
+        "--timezone", "America/New_York",
+        "--latitude", "40.7128", "--longitude", "-74.006",
+      ]);
+      const params = luma.lastAddEventParams;
+      expect(params).toBeDefined();
+      expect((params as Record<string, unknown>).coordinate).toEqual({ latitude: 40.7128, longitude: -74.006 });
+    });
+
+    it("passes --geo-address-json for external event", async () => {
+      const geoJson = JSON.stringify({ type: "manual", address: "123 Main St" });
+      await runCommand(luma, [
+        "calendar", "add-event", "--platform", "external",
+        "--url", "https://example.com/event", "--name", "Geo Event",
+        "--start-at", "2024-07-01T18:00:00Z", "--duration-interval", "PT2H",
+        "--timezone", "America/New_York",
+        "--geo-address-json", geoJson,
+      ]);
+      const params = luma.lastAddEventParams;
+      expect(params).toBeDefined();
+      expect((params as Record<string, unknown>).geo_address_json).toEqual({ type: "manual", address: "123 Main St" });
+    });
+
+    it("passes --geo-latitude and --geo-longitude for external event", async () => {
+      await runCommand(luma, [
+        "calendar", "add-event", "--platform", "external",
+        "--url", "https://example.com/event", "--name", "Geo Event",
+        "--start-at", "2024-07-01T18:00:00Z", "--duration-interval", "PT2H",
+        "--timezone", "America/New_York",
+        "--geo-latitude", "51.5074", "--geo-longitude", "-0.1278",
+      ]);
+      const params = luma.lastAddEventParams;
+      expect(params).toBeDefined();
+      expect((params as Record<string, unknown>).geo_latitude).toBe(51.5074);
+      expect((params as Record<string, unknown>).geo_longitude).toBe(-0.1278);
+    });
   });
 
   describe("calendar approve-event", () => {

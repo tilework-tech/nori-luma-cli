@@ -87,6 +87,29 @@ describe("events command", () => {
       const output = JSON.parse(result.stdout);
       expect(output.entries).toHaveLength(2);
     });
+
+    it("passes --platforms filter", async () => {
+      await runCommand(luma, ["events", "list", "--platforms", "luma,external"]);
+      expect(luma.lastListEventsParams?.platforms).toEqual(["luma", "external"]);
+    });
+
+    it("passes --sort-column and --sort-direction", async () => {
+      await runCommand(luma, [
+        "events",
+        "list",
+        "--sort-column",
+        "start_at",
+        "--sort-direction",
+        "desc",
+      ]);
+      expect(luma.lastListEventsParams?.sortColumn).toBe("start_at");
+      expect(luma.lastListEventsParams?.sortDirection).toBe("desc");
+    });
+
+    it("passes --status filter", async () => {
+      await runCommand(luma, ["events", "list", "--status", "approved"]);
+      expect(luma.lastListEventsParams?.status).toBe("approved");
+    });
   });
 
   describe("events get", () => {
@@ -197,6 +220,107 @@ describe("events command", () => {
       ]);
       expect(result.exitCode).not.toBe(0);
     });
+
+    it("passes --tint-color", async () => {
+      await runCommand(luma, [
+        "events", "create", "--name", "Test", "--start-at", "2024-07-01T18:00:00Z",
+        "--timezone", "America/New_York", "--tint-color", "#E3CBEF",
+      ]);
+      expect(luma.lastCreateEventParams?.tint_color).toBe("#E3CBEF");
+    });
+
+    it("passes --show-guest-list flag", async () => {
+      await runCommand(luma, [
+        "events", "create", "--name", "Test", "--start-at", "2024-07-01T18:00:00Z",
+        "--timezone", "America/New_York", "--show-guest-list",
+      ]);
+      expect(luma.lastCreateEventParams?.show_guest_list).toBe(true);
+    });
+
+    it("passes --reminders-disabled flag", async () => {
+      await runCommand(luma, [
+        "events", "create", "--name", "Test", "--start-at", "2024-07-01T18:00:00Z",
+        "--timezone", "America/New_York", "--reminders-disabled",
+      ]);
+      expect(luma.lastCreateEventParams?.reminders_disabled).toBe(true);
+    });
+
+    it("passes --name-requirement", async () => {
+      await runCommand(luma, [
+        "events", "create", "--name", "Test", "--start-at", "2024-07-01T18:00:00Z",
+        "--timezone", "America/New_York", "--name-requirement", "full-name",
+      ]);
+      expect(luma.lastCreateEventParams?.name_requirement).toBe("full-name");
+    });
+
+    it("passes --phone-number-requirement", async () => {
+      await runCommand(luma, [
+        "events", "create", "--name", "Test", "--start-at", "2024-07-01T18:00:00Z",
+        "--timezone", "America/New_York", "--phone-number-requirement", "required",
+      ]);
+      expect(luma.lastCreateEventParams?.phone_number_requirement).toBe("required");
+    });
+
+    it("passes --can-register-for-multiple-tickets flag", async () => {
+      await runCommand(luma, [
+        "events", "create", "--name", "Test", "--start-at", "2024-07-01T18:00:00Z",
+        "--timezone", "America/New_York", "--can-register-for-multiple-tickets",
+      ]);
+      expect(luma.lastCreateEventParams?.can_register_for_multiple_tickets).toBe(true);
+    });
+
+    it("passes --latitude and --longitude as coordinate", async () => {
+      await runCommand(luma, [
+        "events", "create", "--name", "Test", "--start-at", "2024-07-01T18:00:00Z",
+        "--timezone", "America/New_York", "--latitude", "40.7128", "--longitude", "-74.006",
+      ]);
+      expect(luma.lastCreateEventParams?.coordinate).toEqual({ latitude: 40.7128, longitude: -74.006 });
+    });
+
+    it("passes --geo-address-json as parsed JSON", async () => {
+      const geoJson = JSON.stringify({ type: "manual", address: "123 Main St" });
+      await runCommand(luma, [
+        "events", "create", "--name", "Test", "--start-at", "2024-07-01T18:00:00Z",
+        "--timezone", "America/New_York", "--geo-address-json", geoJson,
+      ]);
+      expect(luma.lastCreateEventParams?.geo_address_json).toEqual({ type: "manual", address: "123 Main St" });
+    });
+
+    it("passes --registration-questions as parsed JSON", async () => {
+      const questions = JSON.stringify([{ type: "text", question: "Company?" }]);
+      await runCommand(luma, [
+        "events", "create", "--name", "Test", "--start-at", "2024-07-01T18:00:00Z",
+        "--timezone", "America/New_York", "--registration-questions", questions,
+      ]);
+      expect(luma.lastCreateEventParams?.registration_questions).toEqual([{ type: "text", question: "Company?" }]);
+    });
+
+    it("passes --feedback-email as parsed JSON", async () => {
+      const feedbackEmail = JSON.stringify({ enabled: true, delay: "P1D" });
+      await runCommand(luma, [
+        "events", "create", "--name", "Test", "--start-at", "2024-07-01T18:00:00Z",
+        "--timezone", "America/New_York", "--feedback-email", feedbackEmail,
+      ]);
+      expect(luma.lastCreateEventParams?.feedback_email).toEqual({ enabled: true, delay: "P1D" });
+    });
+
+    it("errors when only --latitude is provided without --longitude", async () => {
+      const result = await runCommand(luma, [
+        "events", "create", "--name", "Test", "--start-at", "2024-07-01T18:00:00Z",
+        "--timezone", "America/New_York", "--latitude", "40.7128",
+      ]);
+      expect(result.exitCode).not.toBe(0);
+      expect(result.stderr).toContain("--latitude and --longitude must both be provided");
+    });
+
+    it("errors on invalid JSON for --geo-address-json", async () => {
+      const result = await runCommand(luma, [
+        "events", "create", "--name", "Test", "--start-at", "2024-07-01T18:00:00Z",
+        "--timezone", "America/New_York", "--geo-address-json", "not-json",
+      ]);
+      expect(result.exitCode).not.toBe(0);
+      expect(result.stderr).toContain("invalid JSON");
+    });
   });
 
   describe("events update", () => {
@@ -238,6 +362,69 @@ describe("events command", () => {
       ]);
       expect(result.exitCode).not.toBe(0);
       expect(result.stderr).toContain("404");
+    });
+
+    it("passes --tint-color", async () => {
+      luma.events.set("evt-up", makeEvent({ api_id: "evt-up" }));
+      await runCommand(luma, ["events", "update", "--event-id", "evt-up", "--tint-color", "#ABC123"]);
+      expect(luma.lastUpdateEventParams?.tint_color).toBe("#ABC123");
+    });
+
+    it("passes --show-guest-list flag", async () => {
+      luma.events.set("evt-up", makeEvent({ api_id: "evt-up" }));
+      await runCommand(luma, ["events", "update", "--event-id", "evt-up", "--show-guest-list"]);
+      expect(luma.lastUpdateEventParams?.show_guest_list).toBe(true);
+    });
+
+    it("passes --reminders-disabled flag", async () => {
+      luma.events.set("evt-up", makeEvent({ api_id: "evt-up" }));
+      await runCommand(luma, ["events", "update", "--event-id", "evt-up", "--reminders-disabled"]);
+      expect(luma.lastUpdateEventParams?.reminders_disabled).toBe(true);
+    });
+
+    it("passes --name-requirement", async () => {
+      luma.events.set("evt-up", makeEvent({ api_id: "evt-up" }));
+      await runCommand(luma, ["events", "update", "--event-id", "evt-up", "--name-requirement", "first-last"]);
+      expect(luma.lastUpdateEventParams?.name_requirement).toBe("first-last");
+    });
+
+    it("passes --phone-number-requirement", async () => {
+      luma.events.set("evt-up", makeEvent({ api_id: "evt-up" }));
+      await runCommand(luma, ["events", "update", "--event-id", "evt-up", "--phone-number-requirement", "optional"]);
+      expect(luma.lastUpdateEventParams?.phone_number_requirement).toBe("optional");
+    });
+
+    it("passes --can-register-for-multiple-tickets flag", async () => {
+      luma.events.set("evt-up", makeEvent({ api_id: "evt-up" }));
+      await runCommand(luma, ["events", "update", "--event-id", "evt-up", "--can-register-for-multiple-tickets"]);
+      expect(luma.lastUpdateEventParams?.can_register_for_multiple_tickets).toBe(true);
+    });
+
+    it("passes --latitude and --longitude as coordinate", async () => {
+      luma.events.set("evt-up", makeEvent({ api_id: "evt-up" }));
+      await runCommand(luma, ["events", "update", "--event-id", "evt-up", "--latitude", "51.5", "--longitude", "-0.12"]);
+      expect(luma.lastUpdateEventParams?.coordinate).toEqual({ latitude: 51.5, longitude: -0.12 });
+    });
+
+    it("passes --geo-address-json as parsed JSON", async () => {
+      luma.events.set("evt-up", makeEvent({ api_id: "evt-up" }));
+      const geoJson = JSON.stringify({ type: "google", place_id: "ChIJN1t", description: "Sydney" });
+      await runCommand(luma, ["events", "update", "--event-id", "evt-up", "--geo-address-json", geoJson]);
+      expect(luma.lastUpdateEventParams?.geo_address_json).toEqual({ type: "google", place_id: "ChIJN1t", description: "Sydney" });
+    });
+
+    it("passes --registration-questions as parsed JSON", async () => {
+      luma.events.set("evt-up", makeEvent({ api_id: "evt-up" }));
+      const questions = JSON.stringify([{ type: "text", question: "Role?" }]);
+      await runCommand(luma, ["events", "update", "--event-id", "evt-up", "--registration-questions", questions]);
+      expect(luma.lastUpdateEventParams?.registration_questions).toEqual([{ type: "text", question: "Role?" }]);
+    });
+
+    it("passes --feedback-email as parsed JSON", async () => {
+      luma.events.set("evt-up", makeEvent({ api_id: "evt-up" }));
+      const fe = JSON.stringify({ enabled: false });
+      await runCommand(luma, ["events", "update", "--event-id", "evt-up", "--feedback-email", fe]);
+      expect(luma.lastUpdateEventParams?.feedback_email).toEqual({ enabled: false });
     });
   });
 

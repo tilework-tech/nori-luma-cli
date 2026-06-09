@@ -25,6 +25,10 @@ export interface ListEventsParams {
   before?: string;
   paginationLimit?: number;
   paginationCursor?: string;
+  platforms?: string[];
+  sortColumn?: string;
+  sortDirection?: string;
+  status?: string;
 }
 
 export interface CreateEventParams {
@@ -39,6 +43,15 @@ export interface CreateEventParams {
   max_capacity?: number;
   visibility?: string;
   slug?: string;
+  tint_color?: string;
+  show_guest_list?: boolean;
+  reminders_disabled?: boolean;
+  name_requirement?: string;
+  phone_number_requirement?: string;
+  can_register_for_multiple_tickets?: boolean;
+  coordinate?: { latitude: number; longitude: number };
+  registration_questions?: unknown[];
+  feedback_email?: { enabled: boolean; delay?: string };
 }
 
 export interface UpdateEventParams {
@@ -55,6 +68,15 @@ export interface UpdateEventParams {
   visibility?: string;
   slug?: string;
   suppress_notifications?: boolean;
+  tint_color?: string;
+  show_guest_list?: boolean;
+  reminders_disabled?: boolean;
+  name_requirement?: string;
+  phone_number_requirement?: string;
+  can_register_for_multiple_tickets?: boolean;
+  coordinate?: { latitude: number; longitude: number };
+  registration_questions?: unknown[];
+  feedback_email?: { enabled: boolean; delay?: string };
 }
 
 export interface CancelRequestResponse {
@@ -242,6 +264,10 @@ export interface AddEventExternalParams {
   timezone: string;
   submission_mode?: string;
   host?: string;
+  geo_address_json?: Record<string, unknown>;
+  geo_latitude?: number;
+  geo_longitude?: number;
+  coordinate?: { latitude: number; longitude: number };
 }
 
 export interface RejectEventParams {
@@ -676,7 +702,35 @@ export function createLumaService(apiKey: string): LumaService {
       if (params?.before) query.before = params.before;
       if (params?.paginationLimit) query.pagination_limit = String(params.paginationLimit);
       if (params?.paginationCursor) query.pagination_cursor = params.paginationCursor;
-      return request<PaginatedResponse<{ event: LumaEvent }>>("GET", "/v1/calendar/list-events", undefined, query);
+      if (params?.sortColumn) query.sort_column = params.sortColumn;
+      if (params?.sortDirection) query.sort_direction = params.sortDirection;
+      if (params?.status) query.status = params.status;
+
+      const url = new URL("/v1/calendar/list-events", baseUrl);
+      for (const [key, value] of Object.entries(query)) {
+        if (value !== undefined) {
+          url.searchParams.set(key, value);
+        }
+      }
+      if (params?.platforms) {
+        for (const p of params.platforms) {
+          url.searchParams.append("platforms", p);
+        }
+      }
+
+      const headers: Record<string, string> = {
+        "x-luma-api-key": apiKey,
+        Accept: "application/json",
+      };
+
+      const response = await fetch(url.toString(), { method: "GET", headers });
+      if (!response.ok) {
+        const text = await response.text();
+        throw new Error(`Luma API error ${response.status}: ${text}`);
+      }
+      const text = await response.text();
+      if (!text) return { entries: [], has_more: false, next_cursor: null } as PaginatedResponse<{ event: LumaEvent }>;
+      return JSON.parse(text) as PaginatedResponse<{ event: LumaEvent }>;
     },
 
     async getEvent(id: string) {

@@ -1,12 +1,11 @@
 import { Command } from "commander";
 import type { LumaService } from "../services/luma.js";
 import type { Output } from "../output.js";
-import { parseIntStrict } from "../parse.js";
+import { parseIntStrict, parseFloatStrict, parseJSON } from "../parse.js";
 
 export function createEventsCommand(luma: LumaService, out: Output): Command {
   const events = new Command("events")
-    .description("Manage Luma events. Use this to list, get, create, update, cancel events, and manage event coupons.")
-    .addHelpText("after", `\nSource: ${import.meta.dirname}`);
+    .description("Manage Luma events. Use this to list, get, create, update, cancel events, and manage event coupons.");
 
   events
     .command("list")
@@ -15,12 +14,20 @@ export function createEventsCommand(luma: LumaService, out: Output): Command {
     .option("--before <datetime>", "Filter events before this ISO 8601 datetime")
     .option("--limit <number>", "Maximum number of events per page", parseIntStrict)
     .option("--cursor <cursor>", "Pagination cursor from a previous response")
+    .option("--platforms <platforms>", "Filter by platform: comma-separated list of luma, external")
+    .option("--sort-column <column>", "Sort by: start_at")
+    .option("--sort-direction <direction>", "Sort direction: asc, desc, asc nulls last, desc nulls last")
+    .option("--status <status>", "Filter by status: approved, pending")
     .action(async (opts) => {
       const result = await luma.listEvents({
         after: opts.after,
         before: opts.before,
         paginationLimit: opts.limit,
         paginationCursor: opts.cursor,
+        platforms: opts.platforms ? opts.platforms.split(",").map((s: string) => s.trim()) : undefined,
+        sortColumn: opts.sortColumn,
+        sortDirection: opts.sortDirection,
+        status: opts.status,
       });
       out.write(JSON.stringify(result, null, 2) + "\n");
     });
@@ -47,7 +54,26 @@ export function createEventsCommand(luma: LumaService, out: Output): Command {
     .option("--max-capacity <number>", "Maximum guest capacity", parseIntStrict)
     .option("--visibility <visibility>", "Event visibility: public, members-only, or private")
     .option("--slug <slug>", "URL slug (3-50 characters)")
+    .option("--tint-color <color>", "Hex color for event (e.g. #E3CBEF)")
+    .option("--show-guest-list", "Show guest list on event page")
+    .option("--reminders-disabled", "Disable event reminders")
+    .option("--name-requirement <requirement>", "Name requirement: full-name or first-last")
+    .option("--phone-number-requirement <requirement>", "Phone number requirement: optional or required")
+    .option("--can-register-for-multiple-tickets", "Allow guests to register for multiple tickets")
+    .option("--latitude <number>", "Event latitude", parseFloatStrict)
+    .option("--longitude <number>", "Event longitude", parseFloatStrict)
+    .option("--geo-address-json <json>", "Location as JSON (manual: {type,address} or google: {type,place_id,description})", parseJSON)
+    .option("--registration-questions <json>", "Registration questions as JSON array", parseJSON)
+    .option("--feedback-email <json>", "Feedback email settings as JSON ({enabled,delay})", parseJSON)
     .action(async (opts) => {
+      const hasLat = opts.latitude !== undefined;
+      const hasLon = opts.longitude !== undefined;
+      if (hasLat !== hasLon) {
+        out.error("error: --latitude and --longitude must both be provided\n");
+        out.setExitCode(1);
+        return;
+      }
+      const coordinate = hasLat ? { latitude: opts.latitude, longitude: opts.longitude } : undefined;
       const result = await luma.createEvent({
         name: opts.name,
         start_at: opts.startAt,
@@ -59,6 +85,16 @@ export function createEventsCommand(luma: LumaService, out: Output): Command {
         max_capacity: opts.maxCapacity,
         visibility: opts.visibility,
         slug: opts.slug,
+        tint_color: opts.tintColor,
+        show_guest_list: opts.showGuestList || undefined,
+        reminders_disabled: opts.remindersDisabled || undefined,
+        name_requirement: opts.nameRequirement,
+        phone_number_requirement: opts.phoneNumberRequirement,
+        can_register_for_multiple_tickets: opts.canRegisterForMultipleTickets || undefined,
+        coordinate,
+        geo_address_json: opts.geoAddressJson,
+        registration_questions: opts.registrationQuestions,
+        feedback_email: opts.feedbackEmail,
       });
       out.write(JSON.stringify(result, null, 2) + "\n");
     });
@@ -78,7 +114,26 @@ export function createEventsCommand(luma: LumaService, out: Output): Command {
     .option("--visibility <visibility>", "New visibility: public, members-only, or private")
     .option("--slug <slug>", "New URL slug")
     .option("--suppress-notifications", "Suppress guest notifications for this update")
+    .option("--tint-color <color>", "Hex color for event (e.g. #E3CBEF)")
+    .option("--show-guest-list", "Show guest list on event page")
+    .option("--reminders-disabled", "Disable event reminders")
+    .option("--name-requirement <requirement>", "Name requirement: full-name or first-last")
+    .option("--phone-number-requirement <requirement>", "Phone number requirement: optional or required")
+    .option("--can-register-for-multiple-tickets", "Allow guests to register for multiple tickets")
+    .option("--latitude <number>", "Event latitude", parseFloatStrict)
+    .option("--longitude <number>", "Event longitude", parseFloatStrict)
+    .option("--geo-address-json <json>", "Location as JSON (manual: {type,address} or google: {type,place_id,description})", parseJSON)
+    .option("--registration-questions <json>", "Registration questions as JSON array", parseJSON)
+    .option("--feedback-email <json>", "Feedback email settings as JSON ({enabled,delay})", parseJSON)
     .action(async (opts) => {
+      const hasLat = opts.latitude !== undefined;
+      const hasLon = opts.longitude !== undefined;
+      if (hasLat !== hasLon) {
+        out.error("error: --latitude and --longitude must both be provided\n");
+        out.setExitCode(1);
+        return;
+      }
+      const coordinate = hasLat ? { latitude: opts.latitude, longitude: opts.longitude } : undefined;
       const result = await luma.updateEvent({
         event_id: opts.eventId,
         name: opts.name,
@@ -92,6 +147,16 @@ export function createEventsCommand(luma: LumaService, out: Output): Command {
         visibility: opts.visibility,
         slug: opts.slug,
         suppress_notifications: opts.suppressNotifications,
+        tint_color: opts.tintColor,
+        show_guest_list: opts.showGuestList || undefined,
+        reminders_disabled: opts.remindersDisabled || undefined,
+        name_requirement: opts.nameRequirement,
+        phone_number_requirement: opts.phoneNumberRequirement,
+        can_register_for_multiple_tickets: opts.canRegisterForMultipleTickets || undefined,
+        coordinate,
+        geo_address_json: opts.geoAddressJson,
+        registration_questions: opts.registrationQuestions,
+        feedback_email: opts.feedbackEmail,
       });
       out.write(JSON.stringify(result, null, 2) + "\n");
     });

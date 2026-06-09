@@ -5,7 +5,6 @@ import type { Output } from "../output.js";
 export function createUtilityCommand(luma: LumaService, out: Output): Command {
   const utility = new Command("utility")
     .description("Utility commands for account info, entity lookups, and image uploads.")
-    .addHelpText("after", `\nSource: ${import.meta.dirname}`);
 
   utility
     .command("get-self")

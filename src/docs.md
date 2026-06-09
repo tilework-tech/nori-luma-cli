@@ -19,13 +19,13 @@ Path: @/src
 - **`program.ts`** -- Builds the Commander `Command` tree. Registers all command groups (events, guests, hosts, ticket-types, calendar, contacts, membership, organization, webhook, utility). Recursively applies `configureCommandOutput` to redirect all Commander output through the `Output` interface
 - **`output.ts`** -- Defines the `Output` interface (`write`, `error`, `setExitCode`) and the `createProcessOutput` factory that maps to `process.stdout`/`process.stderr`. This is the seam that makes the entire CLI testable without process-level mocking
 - **`config.ts`** -- Reads `LUMA_API_KEY` from `process.env`. Throws a descriptive error if missing. Returns a `LumaConfig` object. No other config sources exist yet
-- **`parse.ts`** -- Shared parsing utilities used by command action handlers. Provides `parseIntStrict` which wraps `parseInt` and throws Commander's `InvalidArgumentError` on non-numeric input, used for `--limit` and similar numeric flags
+- **`parse.ts`** -- Shared parsing utilities used by command action handlers. Provides `parseIntStrict` (wraps `parseInt`) and `parseFloatStrict` (wraps `parseFloat`), both throwing Commander's `InvalidArgumentError` on non-numeric input. `parseIntStrict` is used for `--limit` and similar integer flags; `parseFloatStrict` is used for latitude/longitude coordinate flags
 
 ### Things to Know
 
 - All internal imports use `.js` extensions (e.g., `import { loadConfig } from "./config.js"`) because of Node16 module resolution -- this is required even though the actual source files are `.ts`
 - The `Output` interface is intentionally minimal (write/error/setExitCode) and does not include formatting or logging levels -- commands are responsible for JSON-serializing their own output
-- `configureCommandOutput` in `program.ts` disables colors and redirects writes for the root command and all subcommands recursively; this must be called after all commands are registered or new commands will bypass the redirect
+- `configureCommandOutput` in `program.ts` centralizes all Commander UX configuration for every command in the tree: disables colors, redirects writes through `Output`, appends source-location help text, enables show-help-after-error and show-suggestion-after-error, and adds an `outputError` handler that appends a source directory hint. This must be called after all commands are registered or new commands will bypass the configuration
 - The try/catch in `index.ts` is the only process-boundary error handler; individual commands handle their own errors (writing to stderr and setting exit codes) without rethrowing
 
 Created and maintained by Nori.
