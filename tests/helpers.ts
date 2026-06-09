@@ -43,6 +43,10 @@ import type {
   UpdateContactTagParams,
   ApplyContactTagParams,
   UnapplyContactTagParams,
+  LumaMembershipTier,
+  ListMembershipTiersParams,
+  AddMemberParams,
+  UpdateMemberStatusParams,
 } from "../src/services/luma.js";
 
 export function createTestOutput(): Output & {
@@ -221,6 +225,17 @@ export function makeContactTag(overrides: Partial<LumaContactTag> = {}): LumaCon
   };
 }
 
+export function makeMembershipTier(overrides: Partial<LumaMembershipTier> = {}): LumaMembershipTier {
+  return {
+    id: "mst-test-123",
+    name: "Test Tier",
+    description: null,
+    tint_color: "#3b82f6",
+    access_info: { type: "free", require_approval: false },
+    ...overrides,
+  };
+}
+
 export interface MockCalendarEvent {
   id: string;
   api_id: string;
@@ -241,10 +256,14 @@ export function createMockLumaService(): LumaService & {
   calendarEvents: MockCalendarEvent[];
   contacts: LumaContact[];
   contactTags: LumaContactTag[];
+  membershipTiers: LumaMembershipTier[];
+  members: Map<string, { membership_id: string; status: string; tier_id: string; user_id: string }>;
   lastAddGuestsParams: AddGuestsParams | null;
   lastSendInvitesParams: SendInvitesParams | null;
   lastRejectEventParams: RejectEventParams | null;
   lastImportContactsParams: ImportContactsParams | null;
+  lastAddMemberParams: AddMemberParams | null;
+  lastUpdateMemberStatusParams: UpdateMemberStatusParams | null;
 } {
   const events = new Map<string, LumaEvent>();
   const cancellationTokens = new Map<string, string>();
@@ -265,10 +284,14 @@ export function createMockLumaService(): LumaService & {
     calendarEvents: [],
     contacts: [],
     contactTags: [],
+    membershipTiers: [],
+    members: new Map(),
     lastAddGuestsParams: null,
     lastSendInvitesParams: null,
     lastRejectEventParams: null,
     lastImportContactsParams: null,
+    lastAddMemberParams: null,
+    lastUpdateMemberStatusParams: null,
 
     async listEvents(params?: ListEventsParams) {
       let entries = Array.from(events.values()).map((event) => ({ event }));
@@ -801,6 +824,35 @@ export function createMockLumaService(): LumaService & {
       const idx = this.contactTags.findIndex((t) => t.id === tagId);
       if (idx === -1) throw new Error(`Luma API error 404: Contact tag not found`);
       this.contactTags.splice(idx, 1);
+    },
+
+    async listMembershipTiers(params?: ListMembershipTiersParams) {
+      const limit = params?.paginationLimit ?? 50;
+      const startIndex = params?.paginationCursor ? parseInt(params.paginationCursor, 10) : 0;
+      const page = this.membershipTiers.slice(startIndex, startIndex + limit);
+      const hasMore = startIndex + limit < this.membershipTiers.length;
+      return {
+        entries: page,
+        has_more: hasMore,
+        next_cursor: hasMore ? String(startIndex + limit) : null,
+      };
+    },
+
+    async addMember(params: AddMemberParams) {
+      this.lastAddMemberParams = params;
+      const tier = this.membershipTiers.find((t) => t.id === params.membership_tier_id);
+      if (!tier) throw new Error(`Luma API error 404: Membership tier not found`);
+      const membershipId = `mem-${this.members.size + 1}`;
+      const status = "approved";
+      this.members.set(params.email, { membership_id: membershipId, status, tier_id: params.membership_tier_id, user_id: params.email });
+      return { membership_id: membershipId, status };
+    },
+
+    async updateMemberStatus(params: UpdateMemberStatusParams) {
+      this.lastUpdateMemberStatusParams = params;
+      const member = this.members.get(params.user_id);
+      if (!member) throw new Error(`Luma API error 404: Member not found`);
+      member.status = params.status;
     },
   };
 }

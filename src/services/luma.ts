@@ -381,6 +381,48 @@ export interface UnapplyContactTagParams {
   emails?: string[];
 }
 
+export interface LumaMembershipTierAccessInfo {
+  type: string;
+  require_approval: boolean;
+  amount?: number;
+  currency?: string;
+  stripe_account_id?: string;
+  stripe_product_id?: string;
+  stripe_monthly_price_id?: string | null;
+  amount_monthly?: number | null;
+  stripe_yearly_price_id?: string | null;
+  amount_yearly?: number | null;
+}
+
+export interface LumaMembershipTier {
+  id: string;
+  name: string;
+  description: string | null;
+  tint_color: string;
+  access_info: LumaMembershipTierAccessInfo;
+}
+
+export interface ListMembershipTiersParams {
+  paginationCursor?: string;
+  paginationLimit?: number;
+}
+
+export interface AddMemberParams {
+  email: string;
+  membership_tier_id: string;
+  skip_payment?: boolean;
+}
+
+export interface AddMemberResponse {
+  membership_id: string;
+  status: string;
+}
+
+export interface UpdateMemberStatusParams {
+  user_id: string;
+  status: string;
+}
+
 export interface LumaService {
   listEvents(params?: ListEventsParams): Promise<PaginatedResponse<{ event: LumaEvent }>>;
   getEvent(id: string): Promise<{ event: LumaEvent }>;
@@ -424,6 +466,9 @@ export interface LumaService {
   unapplyContactTag(params: UnapplyContactTagParams): Promise<{ removed_count: number; skipped_count: number }>;
   updateContactTag(params: UpdateContactTagParams): Promise<void>;
   deleteContactTag(tagId: string): Promise<void>;
+  listMembershipTiers(params?: ListMembershipTiersParams): Promise<PaginatedResponse<LumaMembershipTier>>;
+  addMember(params: AddMemberParams): Promise<AddMemberResponse>;
+  updateMemberStatus(params: UpdateMemberStatusParams): Promise<void>;
 }
 
 export function createLumaService(apiKey: string): LumaService {
@@ -688,6 +733,21 @@ export function createLumaService(apiKey: string): LumaService {
 
     async deleteContactTag(tagId: string) {
       await request<void>("POST", "/v1/calendars/contact-tags/delete", { tag_id: tagId });
+    },
+
+    async listMembershipTiers(params?: ListMembershipTiersParams) {
+      const query: Record<string, string> = {};
+      if (params?.paginationLimit) query.pagination_limit = String(params.paginationLimit);
+      if (params?.paginationCursor) query.pagination_cursor = params.paginationCursor;
+      return request<PaginatedResponse<LumaMembershipTier>>("GET", "/v1/memberships/tiers/list", undefined, query);
+    },
+
+    async addMember(params: AddMemberParams) {
+      return request<AddMemberResponse>("POST", "/v1/memberships/members/add", params as unknown as Record<string, unknown>);
+    },
+
+    async updateMemberStatus(params: UpdateMemberStatusParams) {
+      await request<void>("POST", "/v1/memberships/members/update-status", params as unknown as Record<string, unknown>);
     },
   };
 }

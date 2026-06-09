@@ -110,8 +110,8 @@
 - Returns: empty `{}`
 
 ### Memberships (3 endpoints)
-- GET /v1/memberships/tiers/list — List tiers
-- POST /v1/memberships/members/add — Add member
+- GET /v1/memberships/tiers/list — List membership tiers
+- POST /v1/memberships/members/add — Add member to tier
 - POST /v1/memberships/members/update-status — Update member status
 
 ### Organizations (5 endpoints)
@@ -368,6 +368,35 @@ Required response fields: `id`, `name`, `type`
 - Contact apply/unapply accept `user_ids`/`emails` arrays; event tag apply/unapply accept `event_ids`
 - Import returns empty `{}` with no feedback on counts
 - Color enum (8 values): cranberry, barney, red, green, blue, purple, yellow, orange
+
+## Membership Endpoints Detail
+
+### GET /v1/memberships/tiers/list (List Membership Tiers)
+- Query params: `pagination_cursor` (optional), `pagination_limit` (optional)
+- Returns: paginated `{ entries: [MembershipTier], has_more, next_cursor }`
+- MembershipTier shape: `{ id, name, description (nullable), tint_color (hex string), access_info (discriminated union) }`
+- `access_info` variants (discriminated by `type`):
+  - `type: "free"` — `{ type, require_approval }`
+  - `type: "payment-once"` — `{ type, amount (>0), currency, require_approval }`
+  - `type: "payment-recurring"` — `{ type, currency, stripe_account_id, stripe_product_id, stripe_monthly_price_id (nullable), amount_monthly (nullable), stripe_yearly_price_id (nullable), amount_yearly (nullable), require_approval }`
+
+### POST /v1/memberships/members/add (Add Member to Tier)
+- Body: `email` (required), `membership_tier_id` (required), `skip_payment` (boolean, required for paid tiers), `registration_answers` (optional array)
+- Returns: `{ membership_id, status }` where status enum: approved/pending/approved-pending-payment/declined
+- Note: `skip_payment: true` required when handling payment externally for paid tiers
+- Note: Each person can belong to only one tier per calendar
+
+### POST /v1/memberships/members/update-status (Update Member Status)
+- Body: `user_id` (required — accepts usr-xxx ID or email address), `status` (required — enum: approved/declined)
+- Returns: empty `{}`
+- Note: Approving a paid tier member captures their payment. Declining cancels any active subscription.
+- Note: Only `approved` and `declined` are valid status values (no `pending`)
+
+### Membership Endpoint Gotchas
+- Only 3 endpoints — no list-members, get-member, remove-member, create/update/delete-tier
+- No member enumeration possible via API
+- `user_id` field in update-status accepts either a Luma user ID or an email address
+- `registration_answers` has complex discriminated union schema per question_type but is rarely needed for basic member add
 
 ## Reference Projects in Codebase
 - `nori-newsletter-cli`: commander + TypeScript + vitest, factory functions for DI, Output abstraction, services/ layer

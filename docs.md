@@ -29,10 +29,13 @@ Path: @/
    +-- createLumaService()   @/src/services/luma.ts
    +-- createProgram()       @/src/program.ts
          |
-         +-- createEventsCommand()  @/src/commands/events.ts
-         +-- createGuestsCommand()  @/src/commands/guests.ts
-         +-- createHostsCommand()       @/src/commands/hosts.ts
+         +-- createEventsCommand()       @/src/commands/events.ts
+         +-- createGuestsCommand()       @/src/commands/guests.ts
+         +-- createHostsCommand()        @/src/commands/hosts.ts
          +-- createTicketTypesCommand()  @/src/commands/ticket-types.ts
+         +-- createCalendarCommand()     @/src/commands/calendar.ts
+         +-- createContactsCommand()     @/src/commands/contacts.ts
+         +-- createMembershipCommand()   @/src/commands/membership.ts
 ```
 
 ### Things to Know
