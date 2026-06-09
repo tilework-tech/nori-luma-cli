@@ -1,6 +1,6 @@
 # Current Progress
 
-## Status: In Progress — Adding Command Groups
+## Status: Complete — All Luma API Endpoints Covered
 
 ## Completed
 - Project scaffolding (package.json, tsconfig, vitest, ESM setup)
@@ -14,12 +14,10 @@
 - Membership command group (list-tiers, add-member, update-member-status) with 13 passing tests
 - Organization command group (list-admins, list-calendars, list-events, transfer-event, create-calendar) with 19 passing tests
 - Webhook command group (list, get, create, update, delete) with 18 passing tests
+- Utility command group (get-self, entity-lookup, image-upload) with 10 passing tests
 - Documentation (docs.md files for all source directories)
 
-## Next Up
-- Utility commands (get-self, entity-lookup, image-upload)
-
-## Planned (subsequent commits)
+## Planned (all completed)
 1. ~~Project scaffolding + core infra + events commands~~ DONE
 2. ~~Guest + host commands~~ DONE
 3. ~~Ticket type commands~~ DONE
@@ -28,4 +26,4 @@
 6. ~~Membership commands~~ DONE
 7. ~~Organization commands~~ DONE
 8. ~~Webhook commands~~ DONE
-9. Utility commands (get-self, entity-lookup, image-upload)
+9. ~~Utility commands (get-self, entity-lookup, image-upload)~~ DONE

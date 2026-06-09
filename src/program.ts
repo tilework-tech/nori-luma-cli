@@ -10,6 +10,7 @@ import { createContactsCommand } from "./commands/contacts.js";
 import { createMembershipCommand } from "./commands/membership.js";
 import { createOrganizationCommand } from "./commands/organization.js";
 import { createWebhookCommand } from "./commands/webhook.js";
+import { createUtilityCommand } from "./commands/utility.js";
 
 function configureCommandOutput(cmd: Command, out: Output): void {
   cmd.configureOutput({
@@ -46,6 +47,7 @@ export function createProgram(luma: LumaService, out: Output): Command {
   program.addCommand(createMembershipCommand(luma, out));
   program.addCommand(createOrganizationCommand(luma, out));
   program.addCommand(createWebhookCommand(luma, out));
+  program.addCommand(createUtilityCommand(luma, out));
 
   configureCommandOutput(program, out);
 

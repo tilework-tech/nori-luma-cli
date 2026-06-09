@@ -497,6 +497,53 @@ export interface ListOrgCalendarsParams {
   paginationLimit?: number;
 }
 
+export interface LumaUser {
+  id: string;
+  name: string | null;
+  avatar_url: string;
+  email: string;
+  first_name: string | null;
+  last_name: string | null;
+  api_id: string;
+}
+
+export interface LumaEntityCalendar {
+  id: string;
+  api_id: string;
+  name: string;
+  slug: string | null;
+  avatar_url: string | null;
+}
+
+export interface LumaEntityEvent {
+  id: string;
+  api_id: string;
+  name: string;
+  slug: string;
+  cover_url: string;
+  start_at: string;
+  end_at: string;
+}
+
+export interface LumaEntity {
+  type: string | null;
+  calendar?: LumaEntityCalendar;
+  event?: LumaEntityEvent;
+}
+
+export interface LumaEntityLookupResult {
+  entity: LumaEntity | null;
+}
+
+export interface CreateUploadUrlParams {
+  content_type?: string;
+}
+
+export interface CreateUploadUrlResponse {
+  upload_url: string;
+  file_url: string;
+}
+
 export interface LumaService {
   listEvents(params?: ListEventsParams): Promise<PaginatedResponse<{ event: LumaEvent }>>;
   getEvent(id: string): Promise<{ event: LumaEvent }>;
@@ -553,6 +600,9 @@ export interface LumaService {
   createWebhook(params: CreateWebhookParams): Promise<LumaWebhook>;
   updateWebhook(params: UpdateWebhookParams): Promise<LumaWebhook>;
   deleteWebhook(id: string): Promise<void>;
+  getSelf(): Promise<LumaUser>;
+  entityLookup(slug: string): Promise<LumaEntityLookupResult>;
+  createUploadUrl(params?: CreateUploadUrlParams): Promise<CreateUploadUrlResponse>;
 }
 
 export function createLumaService(apiKey: string): LumaService {
@@ -884,6 +934,20 @@ export function createLumaService(apiKey: string): LumaService {
 
     async deleteWebhook(id: string) {
       await request<void>("POST", "/v1/webhooks/delete", { id });
+    },
+
+    async getSelf() {
+      return request<LumaUser>("GET", "/v1/users/get-self");
+    },
+
+    async entityLookup(slug: string) {
+      return request<LumaEntityLookupResult>("GET", "/v1/entity/lookup", undefined, { slug });
+    },
+
+    async createUploadUrl(params?: CreateUploadUrlParams) {
+      const body: Record<string, unknown> = {};
+      if (params?.content_type) body.content_type = params.content_type;
+      return request<CreateUploadUrlResponse>("POST", "/v1/images/create-upload-url", body);
     },
   };
 }

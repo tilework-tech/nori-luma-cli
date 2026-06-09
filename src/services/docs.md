@@ -5,7 +5,7 @@ Path: @/src/services
 ### Overview
 
 - Contains API client interfaces and their concrete implementations for external services
-- Has one service (`luma.ts`) that wraps the Luma public REST API (`https://public-api.luma.com`), covering events, guests, hosts, ticket types, calendar management (settings, admins, coupons, event tags, event submissions), contacts (list, import, contact tags), memberships (tiers, member management), organization management (org admins, org calendars, org events, event transfer, calendar creation), and webhooks (list, get, create, update, delete)
+- Has one service (`luma.ts`) that wraps the Luma public REST API (`https://public-api.luma.com`), providing complete coverage of all Luma API endpoints: events, guests, hosts, ticket types, calendar management, contacts, memberships, organization management, webhooks, and utility endpoints (user identity, entity lookup, image upload)
 
 ### How it fits into the larger codebase
 
@@ -86,6 +86,9 @@ Path: @/src/services
 | `createWebhook`        | POST        | `/v2/webhooks/create`               |
 | `updateWebhook`        | POST        | `/v2/webhooks/update`               |
 | `deleteWebhook`        | POST        | `/v1/webhooks/delete`               |
+| `getSelf`              | GET         | `/v1/users/get-self`                |
+| `entityLookup`         | GET         | `/v1/entity/lookup`                 |
+| `createUploadUrl`      | POST        | `/v1/images/create-upload-url`      |
 
 ### Things to Know
 
@@ -105,6 +108,7 @@ Path: @/src/services
 - Membership endpoints use a distinct `/v1/memberships/` prefix (not `/v1/calendar/` or `/v1/calendars/`), which is unique among the API groups. `LumaMembershipTierAccessInfo.type` indicates the tier's access model (e.g., `"free"`, `"payment-once"`), and paid tiers include Stripe-related fields. `addMember` returns an `AddMemberResponse` with `membership_id` and `status`, while `updateMemberStatus` returns void
 - Organization endpoints use a distinct `/v1/organizations/` prefix (not `/v1/calendar/` or `/v1/calendars/`), except `createCalendar` which uses a v2 endpoint (`/v2/organizations/calendars/create`). `listOrgAdmins` returns `{ entries: LumaCalendarAdmin[] }` without pagination (same shape as calendar admins). `listOrgCalendars` and `listOrgEvents` return `PaginatedResponse<T>` with cursor-based pagination. `LumaOrgEvent` is a distinct type from `LumaEvent` -- it includes fields like `calendar_id`, `description_md`, `registration_questions`, `visibility`, and `feedback_email` that are absent from the standard event type. `transferEventCalendar` returns void (the API returns empty `{}`). Organization endpoints reuse `LumaCalendar` and `LumaCalendarAdmin` types where the response shapes match
 - Webhook endpoints use a distinct `/v1/webhooks/` and `/v2/webhooks/` prefix (not shared with any other group). Like organization's `createCalendar`, the webhook `get`, `create`, and `update` methods use v2 endpoints, while `list` and `delete` use v1 -- this is another instance of the Luma API's mixed versioning. `LumaWebhook` includes a `secret` field (the signing secret for verifying payloads) that is returned on create and get. `deleteWebhook` returns void (the API returns empty `{}`)
+- Utility endpoints each use a unique API prefix: `getSelf` uses `/v1/users/`, `entityLookup` uses `/v1/entity/`, and `createUploadUrl` uses `/v1/images/` -- none of these share a prefix with each other or with any other command group. `entityLookup` returns a `LumaEntityLookupResult` containing a nullable `LumaEntity` whose `type` field discriminates between `calendar` and `event` shapes (the irrelevant field is absent). `createUploadUrl` is a POST despite being a creation-of-a-URL rather than a resource mutation -- it returns both the presigned `upload_url` (for the client to PUT the image) and the final `file_url` (the CDN location after upload completes)
 - The service uses Node's built-in `fetch` (available since Node 18, which is the minimum engine requirement in `package.json`)
 
 Created and maintained by Nori.

@@ -512,6 +512,42 @@ All 6 fields are required in every response.
 - Webhook ID prefix: `wbhk`
 - Webhooks exclusively available to Luma Plus subscribers
 
+## Utility Endpoints Detail
+
+### GET /v1/users/get-self (Get Authenticated User)
+- No query params, no body — user determined by API key
+- Returns flat user object (NOT wrapped):
+  - `id` (string, required)
+  - `name` (string | null)
+  - `avatar_url` (string, required)
+  - `email` (string, required)
+  - `first_name` (string | null)
+  - `last_name` (string | null)
+  - `api_id` (string, deprecated — use `id`)
+
+### GET /v1/entity/lookup (Lookup Entity by Slug)
+- Query params: `slug` (string, required) — the URL path portion from lu.ma/<slug>
+- Returns: `{ entity: CalendarEntity | EventEntity | null }`
+- Discriminated union on `entity.type`:
+  - `type: "calendar"` → `{ type, calendar: { id, api_id, name, slug (nullable), avatar_url (nullable) } }`
+  - `type: "event"` → `{ type, event: { id, api_id, name, slug, cover_url, start_at, end_at } }`
+  - `null` → slug not found, returns `{ entity: null }`
+- Note: `entity.type` itself can be null per OpenAPI spec (unrecognized entity type)
+
+### POST /v1/images/create-upload-url (Create Image Upload URL)
+- Body: `content_type` (optional, enum: "image/jpeg" | "image/png" | null)
+- Returns: `{ upload_url, file_url }`
+  - `upload_url` — presigned URL to PUT image binary data to
+  - `file_url` — permanent CDN URL where image will be accessible after upload
+- Two-step workflow: (1) call this endpoint, (2) PUT binary data to upload_url
+- Only JPEG and PNG supported
+
+### Utility Endpoint Gotchas
+- get-self has no params — entirely determined by API key
+- entity-lookup returns null for not-found (no error thrown)
+- image-upload only generates the URL — actual upload is a separate PUT request to S3
+- image-upload content_type is optional but recommended
+
 ## Reference Projects in Codebase
 - `nori-newsletter-cli`: commander + TypeScript + vitest, factory functions for DI, Output abstraction, services/ layer
 - `nori-slack-cli`: Same patterns, includes paginate.ts and suggest.ts utilities

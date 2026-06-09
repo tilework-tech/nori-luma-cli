@@ -56,6 +56,9 @@ import type {
   ListWebhooksParams,
   CreateWebhookParams,
   UpdateWebhookParams,
+  LumaUser,
+  LumaEntity,
+  CreateUploadUrlParams,
 } from "../src/services/luma.js";
 
 export function createTestOutput(): Output & {
@@ -271,6 +274,19 @@ export function makeOrgEvent(overrides: Partial<LumaOrgEvent> = {}): LumaOrgEven
   };
 }
 
+export function makeSelfUser(overrides: Partial<LumaUser> = {}): LumaUser {
+  return {
+    id: "usr-test-123",
+    name: "Test User",
+    avatar_url: "https://example.com/avatar.png",
+    email: "test@example.com",
+    first_name: "Test",
+    last_name: "User",
+    api_id: "usr-test-123",
+    ...overrides,
+  };
+}
+
 export function makeWebhook(overrides: Partial<LumaWebhook> = {}): LumaWebhook {
   return {
     id: "wh-test-123",
@@ -309,6 +325,8 @@ export function createMockLumaService(): LumaService & {
   orgCalendars: LumaCalendar[];
   orgEvents: LumaOrgEvent[];
   webhooks: LumaWebhook[];
+  selfUser: LumaUser;
+  entityLookupResults: Map<string, LumaEntity>;
   lastAddGuestsParams: AddGuestsParams | null;
   lastSendInvitesParams: SendInvitesParams | null;
   lastRejectEventParams: RejectEventParams | null;
@@ -320,6 +338,7 @@ export function createMockLumaService(): LumaService & {
   lastListOrgEventsParams: ListOrgEventsParams | null;
   lastCreateWebhookParams: CreateWebhookParams | null;
   lastUpdateWebhookParams: UpdateWebhookParams | null;
+  lastCreateUploadUrlParams: CreateUploadUrlParams | null;
 } {
   const events = new Map<string, LumaEvent>();
   const cancellationTokens = new Map<string, string>();
@@ -346,6 +365,8 @@ export function createMockLumaService(): LumaService & {
     orgCalendars: [],
     orgEvents: [],
     webhooks: [],
+    selfUser: makeSelfUser(),
+    entityLookupResults: new Map(),
     lastAddGuestsParams: null,
     lastSendInvitesParams: null,
     lastRejectEventParams: null,
@@ -357,6 +378,7 @@ export function createMockLumaService(): LumaService & {
     lastListOrgEventsParams: null,
     lastCreateWebhookParams: null,
     lastUpdateWebhookParams: null,
+    lastCreateUploadUrlParams: null,
 
     async listEvents(params?: ListEventsParams) {
       let entries = Array.from(events.values()).map((event) => ({ event }));
@@ -1025,6 +1047,23 @@ export function createMockLumaService(): LumaService & {
       const idx = this.webhooks.findIndex((w) => w.id === id);
       if (idx === -1) throw new Error(`Luma API error 404: Webhook not found`);
       this.webhooks.splice(idx, 1);
+    },
+
+    async getSelf() {
+      return this.selfUser;
+    },
+
+    async entityLookup(slug: string) {
+      const entity = this.entityLookupResults.get(slug) ?? null;
+      return { entity };
+    },
+
+    async createUploadUrl(params?: CreateUploadUrlParams) {
+      this.lastCreateUploadUrlParams = params ?? null;
+      return {
+        upload_url: "https://storage.example.com/upload/test-123",
+        file_url: "https://cdn.example.com/images/test-123.jpg",
+      };
     },
   };
 }
