@@ -18,8 +18,8 @@ Path: @/
 
 ### Core Implementation
 
-- Startup flow: `index.ts` calls `loadConfig()` -> `createLumaService(apiKey)` -> `createProgram(luma, out)` -> `program.parseAsync()`
-- If `LUMA_API_KEY` is missing, the process throws before Commander ever runs, producing a descriptive error with instructions for obtaining a key
+- Startup flow: `index.ts` checks whether the invocation is help/version-only, then calls `createLumaService(apiKey)` -> `createProgram(luma, out)` -> `program.parseAsync()`. Normal API commands call `loadConfig()` first; help/version invocations use a placeholder key because they do not execute Luma API actions.
+- If `LUMA_API_KEY` is missing for an API command, the process throws before Commander executes the action, producing a descriptive error with instructions for obtaining a key. Help and version output remain available without credentials.
 - Commander output channels (stdout/stderr, color settings), help text (source location), error output (source location hint + show-help-after-error + show-suggestion-after-error) are all globally configured via a recursive `configureCommandOutput` walk over all registered subcommands in `@/src/program.ts`
 
 ```
