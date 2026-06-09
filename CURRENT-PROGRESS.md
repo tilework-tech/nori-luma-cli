@@ -9,16 +9,17 @@
 - Guest command group (list, get, add, update-status, send-invites) with 27 passing tests
 - Host command group (add, update, remove) with 16 passing tests
 - Ticket type command group (list, get, create, update, delete) with 21 passing tests
+- Calendar command group (get, lookup-event, add-event, approve-event, reject-event, list-admins, list-coupons, create-coupon, update-coupon, list-event-tags, create-event-tag, update-event-tag, delete-event-tag, apply-event-tag, unapply-event-tag) with 45 passing tests
 - Documentation (docs.md files for all source directories)
 
 ## Next Up
-- Calendar commands (admins, coupons, event-tags, add/approve/reject)
+- Contact commands (list, import, contact-tags)
 
 ## Planned (subsequent commits)
 1. ~~Project scaffolding + core infra + events commands~~ DONE
 2. ~~Guest + host commands~~ DONE
 3. ~~Ticket type commands~~ DONE
-4. Calendar commands (admins, coupons, event-tags, add/approve/reject)
+4. ~~Calendar commands (admins, coupons, event-tags, add/approve/reject)~~ DONE
 5. Contact commands (list, import, contact-tags)
 6. Membership commands
 7. Organization commands

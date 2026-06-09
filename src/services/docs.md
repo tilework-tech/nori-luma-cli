@@ -5,7 +5,7 @@ Path: @/src/services
 ### Overview
 
 - Contains API client interfaces and their concrete implementations for external services
-- Has one service (`luma.ts`) that wraps the Luma public REST API (`https://public-api.luma.com`), covering events, guests, hosts, and ticket types
+- Has one service (`luma.ts`) that wraps the Luma public REST API (`https://public-api.luma.com`), covering events, guests, hosts, ticket types, and calendar management (settings, admins, coupons, event tags, event submissions)
 
 ### How it fits into the larger codebase
 
@@ -24,7 +24,7 @@ Path: @/src/services
 
 ### Core Implementation
 
-- **`luma.ts`** defines the `LumaService` interface and all related types for events, guests, hosts, and ticket types (e.g., `LumaEvent`, `LumaGuest`, `LumaTicketType`, `GuestIdentifier`, `CreateHostParams`, `PaginatedResponse`)
+- **`luma.ts`** defines the `LumaService` interface and all related types for events, guests, hosts, ticket types, and calendar entities (e.g., `LumaEvent`, `LumaGuest`, `LumaTicketType`, `LumaCalendar`, `LumaCoupon`, `LumaEventTag`, `LumaCalendarAdmin`, `GuestIdentifier`, `PaginatedResponse`)
 - `createLumaService(apiKey)` returns an object implementing `LumaService` using a private `request<T>()` helper that wraps `fetch`
 - The `request` helper handles: URL construction with query params, JSON serialization/deserialization, the `x-luma-api-key` auth header, and HTTP error translation (non-OK responses throw `Error` with status code and response body)
 - API method mapping:
@@ -50,6 +50,21 @@ Path: @/src/services
 | `createTicketType`     | POST        | `/v1/events/ticket-types/create`|
 | `updateTicketType`     | POST        | `/v1/events/ticket-types/update`|
 | `deleteTicketType`     | POST        | `/v1/event/ticket-types/delete` |
+| `getCalendar`          | GET         | `/v1/calendars/get`             |
+| `lookupEvent`          | GET         | `/v1/calendar/lookup-event`     |
+| `addEventToCalendar`   | POST        | `/v1/calendar/add-event`        |
+| `approveEvent`         | POST        | `/v1/calendar/approve-event`    |
+| `rejectEvent`          | POST        | `/v1/calendar/reject-event`     |
+| `listAdmins`           | GET         | `/v1/calendar/admins/list`      |
+| `listCoupons`          | GET         | `/v1/calendar/coupons`          |
+| `createCoupon`         | POST        | `/v1/calendars/coupons/create`  |
+| `updateCoupon`         | POST        | `/v1/calendar/coupons/update`   |
+| `listEventTags`        | GET         | `/v1/calendar/event-tags/list`  |
+| `createEventTag`       | POST        | `/v1/calendar/event-tags/create`|
+| `updateEventTag`       | POST        | `/v1/calendar/event-tags/update`|
+| `deleteEventTag`       | POST        | `/v1/calendar/event-tags/delete`|
+| `applyEventTag`        | POST        | `/v1/calendar/event-tags/apply` |
+| `unapplyEventTag`      | POST        | `/v1/calendar/event-tags/unapply`|
 
 ### Things to Know
 
@@ -59,7 +74,11 @@ Path: @/src/services
 - The `GuestIdentifier` type is a discriminated union (`type: "email" | "api_id"`) used by `updateGuestStatus` to identify a guest by either email or API ID
 - Cancellation is a two-step protocol enforced by the Luma API: first `requestCancellation` returns a `cancellation_token`, then `cancelEvent` must be called with both the event ID and that token
 - The ticket type endpoints split across `/v1/events/` (list, get, create, update) and `/v1/event/` (delete) -- this is a known Luma API inconsistency, not a typo
-- `listTicketTypes` returns `{ entries: LumaTicketType[] }` (no pagination fields), unlike `listEvents` and `listGuests` which return `PaginatedResponse<T>` with cursor-based pagination
+- Calendar endpoints similarly split: `getCalendar` uses `/v1/calendars/get` (plural) while most others use `/v1/calendar/` (singular). `createCoupon` uses `/v1/calendars/coupons/create` (plural) but `updateCoupon` uses `/v1/calendar/coupons/update` (singular) -- again a Luma API inconsistency
+- `listTicketTypes`, `listAdmins`, and `listEventTags` return `{ entries: T[] }` (no pagination fields), unlike `listEvents`, `listGuests`, and `listCoupons` which return `PaginatedResponse<T>` with cursor-based pagination
+- `addEventToCalendar` accepts a discriminated union param type (`AddEventLumaParams | AddEventExternalParams`) keyed on `platform: "luma" | "external"` -- the two shapes have completely different fields
+- `CreateCouponParams.discount` is a discriminated union keyed on `discount_type: "percent" | "amount"` -- percent discounts carry `percent_off`, amount discounts carry `cents_off` and `currency`
+- `applyEventTag` and `unapplyEventTag` identify tags by ID or name (both accepted in a single `tag` string param) and return counts of applied/removed vs skipped events
 - The service uses Node's built-in `fetch` (available since Node 18, which is the minimum engine requirement in `package.json`)
 
 Created and maintained by Nori.

@@ -191,6 +191,135 @@ export interface DeleteTicketTypeParams {
   event_ticket_type_id: string;
 }
 
+export interface LumaCalendar {
+  id: string;
+  name: string;
+  slug: string | null;
+  avatar_url: string | null;
+  url: string;
+  description: string | null;
+  social_image_url: string | null;
+  cover_image_url: string | null;
+  is_personal: boolean;
+  location: {
+    city: string;
+    region: string | null;
+    country: string | null;
+    country_code: string | null;
+    timezone: string;
+  } | null;
+  coordinate: { longitude: number; latitude: number } | null;
+  instagram_handle: string | null;
+  twitter_handle: string | null;
+  youtube_handle: string | null;
+  website: string | null;
+}
+
+export interface CalendarEventEntry {
+  id: string;
+  api_id: string;
+  status: string;
+}
+
+export interface LookupEventParams {
+  platform?: string;
+  url?: string;
+  event_id?: string;
+}
+
+export interface AddEventLumaParams {
+  platform: "luma";
+  event_id: string;
+  submission_mode?: string;
+}
+
+export interface AddEventExternalParams {
+  platform: "external";
+  url: string;
+  name: string;
+  start_at: string;
+  duration_interval: string;
+  timezone: string;
+  submission_mode?: string;
+  host?: string;
+}
+
+export interface RejectEventParams {
+  calendar_event_id: string;
+  message?: string;
+}
+
+export interface LumaCalendarAdmin {
+  id: string;
+  api_id: string;
+  name: string | null;
+  avatar_url: string;
+  email: string;
+  first_name: string | null;
+  last_name: string | null;
+}
+
+export interface LumaCoupon {
+  id: string;
+  api_id: string;
+  code: string;
+  remaining_count: number;
+  valid_start_at: string | null;
+  valid_end_at: string | null;
+  percent_off: number | null;
+  cents_off: number | null;
+  currency: string | null;
+  event_ticket_type_id?: string | null;
+}
+
+export interface ListCouponsParams {
+  paginationCursor?: string;
+  paginationLimit?: number;
+}
+
+export interface CreateCouponParams {
+  code: string;
+  discount: { discount_type: "percent"; percent_off: number } | { discount_type: "amount"; cents_off: number; currency: string };
+  remaining_count?: number;
+  valid_start_at?: string;
+  valid_end_at?: string;
+}
+
+export interface UpdateCouponParams {
+  code: string;
+  remaining_count?: number;
+  valid_start_at?: string | null;
+  valid_end_at?: string | null;
+}
+
+export interface LumaEventTag {
+  id: string;
+  api_id: string;
+  name: string;
+  color: string;
+}
+
+export interface CreateEventTagParams {
+  name: string;
+  color?: string | null;
+}
+
+export interface UpdateEventTagParams {
+  tag_id: string;
+  name?: string;
+  color?: string;
+}
+
+export interface ApplyEventTagParams {
+  tag: string;
+  event_ids?: string[];
+}
+
+export interface UnapplyEventTagParams {
+  tag: string;
+  event_ids?: string[];
+}
+
 export interface LumaService {
   listEvents(params?: ListEventsParams): Promise<PaginatedResponse<{ event: LumaEvent }>>;
   getEvent(id: string): Promise<{ event: LumaEvent }>;
@@ -211,6 +340,21 @@ export interface LumaService {
   createTicketType(params: CreateTicketTypeParams): Promise<LumaTicketType>;
   updateTicketType(params: UpdateTicketTypeParams): Promise<LumaTicketType>;
   deleteTicketType(params: DeleteTicketTypeParams): Promise<void>;
+  getCalendar(): Promise<LumaCalendar>;
+  lookupEvent(params: LookupEventParams): Promise<{ event: CalendarEventEntry | null }>;
+  addEventToCalendar(params: AddEventLumaParams | AddEventExternalParams): Promise<CalendarEventEntry>;
+  approveEvent(calendarEventId: string): Promise<void>;
+  rejectEvent(params: RejectEventParams): Promise<void>;
+  listAdmins(): Promise<{ entries: LumaCalendarAdmin[] }>;
+  listCoupons(params?: ListCouponsParams): Promise<PaginatedResponse<LumaCoupon>>;
+  createCoupon(params: CreateCouponParams): Promise<LumaCoupon>;
+  updateCoupon(params: UpdateCouponParams): Promise<void>;
+  listEventTags(): Promise<{ entries: LumaEventTag[] }>;
+  createEventTag(params: CreateEventTagParams): Promise<{ tag_id: string }>;
+  updateEventTag(params: UpdateEventTagParams): Promise<void>;
+  deleteEventTag(tagId: string): Promise<void>;
+  applyEventTag(params: ApplyEventTagParams): Promise<{ applied_count: number; skipped_count: number }>;
+  unapplyEventTag(params: UnapplyEventTagParams): Promise<{ removed_count: number; skipped_count: number }>;
 }
 
 export function createLumaService(apiKey: string): LumaService {
@@ -341,6 +485,73 @@ export function createLumaService(apiKey: string): LumaService {
 
     async deleteTicketType(params: DeleteTicketTypeParams) {
       await request<void>("POST", "/v1/event/ticket-types/delete", params as unknown as Record<string, unknown>);
+    },
+
+    async getCalendar() {
+      return request<LumaCalendar>("GET", "/v1/calendars/get");
+    },
+
+    async lookupEvent(params: LookupEventParams) {
+      const query: Record<string, string> = {};
+      if (params.platform) query.platform = params.platform;
+      if (params.url) query.url = params.url;
+      if (params.event_id) query.event_id = params.event_id;
+      return request<{ event: CalendarEventEntry | null }>("GET", "/v1/calendar/lookup-event", undefined, query);
+    },
+
+    async addEventToCalendar(params: AddEventLumaParams | AddEventExternalParams) {
+      return request<CalendarEventEntry>("POST", "/v1/calendar/add-event", params as unknown as Record<string, unknown>);
+    },
+
+    async approveEvent(calendarEventId: string) {
+      await request<void>("POST", "/v1/calendar/approve-event", { calendar_event_id: calendarEventId });
+    },
+
+    async rejectEvent(params: RejectEventParams) {
+      await request<void>("POST", "/v1/calendar/reject-event", params as unknown as Record<string, unknown>);
+    },
+
+    async listAdmins() {
+      return request<{ entries: LumaCalendarAdmin[] }>("GET", "/v1/calendar/admins/list");
+    },
+
+    async listCoupons(params?: ListCouponsParams) {
+      const query: Record<string, string> = {};
+      if (params?.paginationLimit) query.pagination_limit = String(params.paginationLimit);
+      if (params?.paginationCursor) query.pagination_cursor = params.paginationCursor;
+      return request<PaginatedResponse<LumaCoupon>>("GET", "/v1/calendar/coupons", undefined, query);
+    },
+
+    async createCoupon(params: CreateCouponParams) {
+      return request<LumaCoupon>("POST", "/v1/calendars/coupons/create", params as unknown as Record<string, unknown>);
+    },
+
+    async updateCoupon(params: UpdateCouponParams) {
+      await request<void>("POST", "/v1/calendar/coupons/update", params as unknown as Record<string, unknown>);
+    },
+
+    async listEventTags() {
+      return request<{ entries: LumaEventTag[] }>("GET", "/v1/calendar/event-tags/list");
+    },
+
+    async createEventTag(params: CreateEventTagParams) {
+      return request<{ tag_id: string }>("POST", "/v1/calendar/event-tags/create", params as unknown as Record<string, unknown>);
+    },
+
+    async updateEventTag(params: UpdateEventTagParams) {
+      await request<void>("POST", "/v1/calendar/event-tags/update", params as unknown as Record<string, unknown>);
+    },
+
+    async deleteEventTag(tagId: string) {
+      await request<void>("POST", "/v1/calendar/event-tags/delete", { tag_id: tagId });
+    },
+
+    async applyEventTag(params: ApplyEventTagParams) {
+      return request<{ applied_count: number; skipped_count: number }>("POST", "/v1/calendar/event-tags/apply", params as unknown as Record<string, unknown>);
+    },
+
+    async unapplyEventTag(params: UnapplyEventTagParams) {
+      return request<{ removed_count: number; skipped_count: number }>("POST", "/v1/calendar/event-tags/unapply", params as unknown as Record<string, unknown>);
     },
   };
 }

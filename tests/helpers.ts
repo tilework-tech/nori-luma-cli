@@ -5,6 +5,11 @@ import type {
   LumaEvent,
   LumaGuest,
   LumaTicketType,
+  LumaCalendar,
+  LumaCalendarAdmin,
+  LumaCoupon,
+  LumaEventTag,
+  CalendarEventEntry,
   CreateEventParams,
   UpdateEventParams,
   ListEventsParams,
@@ -19,6 +24,17 @@ import type {
   CreateTicketTypeParams,
   UpdateTicketTypeParams,
   DeleteTicketTypeParams,
+  LookupEventParams,
+  AddEventLumaParams,
+  AddEventExternalParams,
+  RejectEventParams,
+  ListCouponsParams,
+  CreateCouponParams,
+  UpdateCouponParams,
+  CreateEventTagParams,
+  UpdateEventTagParams,
+  ApplyEventTagParams,
+  UnapplyEventTagParams,
 } from "../src/services/luma.js";
 
 export function createTestOutput(): Output & {
@@ -110,14 +126,86 @@ export function makeTicketType(overrides: Partial<LumaTicketType> = {}): LumaTic
   };
 }
 
+export function makeCalendar(overrides: Partial<LumaCalendar> = {}): LumaCalendar {
+  return {
+    id: "cal-test-123",
+    name: "Test Calendar",
+    slug: "test-calendar",
+    avatar_url: null,
+    url: "https://lu.ma/cal/test-calendar",
+    description: null,
+    social_image_url: null,
+    cover_image_url: null,
+    is_personal: false,
+    location: null,
+    coordinate: null,
+    instagram_handle: null,
+    twitter_handle: null,
+    youtube_handle: null,
+    website: null,
+    ...overrides,
+  };
+}
+
+export function makeAdmin(overrides: Partial<LumaCalendarAdmin> = {}): LumaCalendarAdmin {
+  return {
+    id: "usr-test-123",
+    api_id: "usr-test-123",
+    name: "Test Admin",
+    avatar_url: "https://example.com/avatar.png",
+    email: "admin@example.com",
+    first_name: "Test",
+    last_name: "Admin",
+    ...overrides,
+  };
+}
+
+export function makeCoupon(overrides: Partial<LumaCoupon> = {}): LumaCoupon {
+  return {
+    id: "cpn-test-123",
+    api_id: "cpn-test-123",
+    code: "TESTCODE",
+    remaining_count: 100,
+    valid_start_at: null,
+    valid_end_at: null,
+    percent_off: null,
+    cents_off: null,
+    currency: null,
+    ...overrides,
+  };
+}
+
+export function makeEventTag(overrides: Partial<LumaEventTag> = {}): LumaEventTag {
+  return {
+    id: "tag-test-123",
+    api_id: "tag-test-123",
+    name: "Test Tag",
+    color: "blue",
+    ...overrides,
+  };
+}
+
+export interface MockCalendarEvent {
+  id: string;
+  api_id: string;
+  status: string;
+  event_id: string;
+}
+
 export function createMockLumaService(): LumaService & {
   events: Map<string, LumaEvent>;
   cancellationTokens: Map<string, string>;
   guests: Map<string, LumaGuest[]>;
   hosts: Map<string, MockHost[]>;
   ticketTypes: Map<string, LumaTicketType[]>;
+  calendar: LumaCalendar;
+  calendarAdmins: LumaCalendarAdmin[];
+  calendarCoupons: LumaCoupon[];
+  eventTags: LumaEventTag[];
+  calendarEvents: MockCalendarEvent[];
   lastAddGuestsParams: AddGuestsParams | null;
   lastSendInvitesParams: SendInvitesParams | null;
+  lastRejectEventParams: RejectEventParams | null;
 } {
   const events = new Map<string, LumaEvent>();
   const cancellationTokens = new Map<string, string>();
@@ -131,8 +219,14 @@ export function createMockLumaService(): LumaService & {
     guests,
     hosts,
     ticketTypes,
+    calendar: makeCalendar(),
+    calendarAdmins: [],
+    calendarCoupons: [],
+    eventTags: [],
+    calendarEvents: [],
     lastAddGuestsParams: null,
     lastSendInvitesParams: null,
+    lastRejectEventParams: null,
 
     async listEvents(params?: ListEventsParams) {
       let entries = Array.from(events.values()).map((event) => ({ event }));
@@ -409,6 +503,140 @@ export function createMockLumaService(): LumaService & {
         }
       }
       throw new Error(`Luma API error 404: Ticket type not found`);
+    },
+
+    async getCalendar() {
+      return this.calendar;
+    },
+
+    async lookupEvent(params: LookupEventParams) {
+      const entry = this.calendarEvents.find((ce) => {
+        if (params.event_id) return ce.event_id === params.event_id;
+        return false;
+      });
+      return { event: entry ? { id: entry.id, api_id: entry.api_id, status: entry.status } : null };
+    },
+
+    async addEventToCalendar(params: AddEventLumaParams | AddEventExternalParams) {
+      const id = `calev-${Date.now()}`;
+      const eventId = params.platform === "luma" ? params.event_id : `evt-ext-${Date.now()}`;
+      const status = params.submission_mode === "pending" ? "pending" : "approved";
+      const entry: MockCalendarEvent = { id, api_id: id, status, event_id: eventId };
+      this.calendarEvents.push(entry);
+      return { id: entry.id, api_id: entry.api_id, status: entry.status };
+    },
+
+    async approveEvent(calendarEventId: string) {
+      const entry = this.calendarEvents.find((ce) => ce.id === calendarEventId || ce.event_id === calendarEventId);
+      if (!entry) throw new Error(`Luma API error 404: Calendar event not found`);
+      entry.status = "approved";
+    },
+
+    async rejectEvent(params: RejectEventParams) {
+      this.lastRejectEventParams = params;
+      const entry = this.calendarEvents.find((ce) => ce.id === params.calendar_event_id || ce.event_id === params.calendar_event_id);
+      if (!entry) throw new Error(`Luma API error 404: Calendar event not found`);
+      entry.status = "rejected";
+    },
+
+    async listAdmins() {
+      return { entries: this.calendarAdmins };
+    },
+
+    async listCoupons(params?: ListCouponsParams) {
+      const limit = params?.paginationLimit ?? 50;
+      const startIndex = params?.paginationCursor ? parseInt(params.paginationCursor, 10) : 0;
+      const page = this.calendarCoupons.slice(startIndex, startIndex + limit);
+      const hasMore = startIndex + limit < this.calendarCoupons.length;
+      return {
+        entries: page,
+        has_more: hasMore,
+        next_cursor: hasMore ? String(startIndex + limit) : null,
+      };
+    },
+
+    async createCoupon(params: CreateCouponParams) {
+      const coupon = makeCoupon({
+        id: `cpn-${Date.now()}`,
+        code: params.code,
+        remaining_count: params.remaining_count ?? 1000000,
+        valid_start_at: params.valid_start_at ?? null,
+        valid_end_at: params.valid_end_at ?? null,
+        percent_off: params.discount.discount_type === "percent" ? params.discount.percent_off : null,
+        cents_off: params.discount.discount_type === "amount" ? params.discount.cents_off : null,
+        currency: params.discount.discount_type === "amount" ? params.discount.currency : null,
+      });
+      this.calendarCoupons.push(coupon);
+      return coupon;
+    },
+
+    async updateCoupon(params: UpdateCouponParams) {
+      const coupon = this.calendarCoupons.find((c) => c.code === params.code);
+      if (!coupon) throw new Error(`Luma API error 404: Coupon not found`);
+      if (params.remaining_count !== undefined) coupon.remaining_count = params.remaining_count;
+      if (params.valid_start_at !== undefined) coupon.valid_start_at = params.valid_start_at ?? null;
+      if (params.valid_end_at !== undefined) coupon.valid_end_at = params.valid_end_at ?? null;
+    },
+
+    async listEventTags() {
+      return { entries: this.eventTags };
+    },
+
+    async createEventTag(params: CreateEventTagParams) {
+      const id = `tag-${Date.now()}`;
+      const tag = makeEventTag({
+        id,
+        api_id: id,
+        name: params.name,
+        color: params.color ?? "blue",
+      });
+      this.eventTags.push(tag);
+      return { tag_id: tag.id };
+    },
+
+    async updateEventTag(params: UpdateEventTagParams) {
+      const tag = this.eventTags.find((t) => t.id === params.tag_id);
+      if (!tag) throw new Error(`Luma API error 404: Event tag not found`);
+      if (params.name !== undefined) tag.name = params.name;
+      if (params.color !== undefined) tag.color = params.color;
+    },
+
+    async deleteEventTag(tagId: string) {
+      const idx = this.eventTags.findIndex((t) => t.id === tagId);
+      if (idx === -1) throw new Error(`Luma API error 404: Event tag not found`);
+      this.eventTags.splice(idx, 1);
+    },
+
+    async applyEventTag(params: ApplyEventTagParams) {
+      const tag = this.eventTags.find((t) => t.id === params.tag || t.name === params.tag);
+      if (!tag) throw new Error(`Luma API error 404: Event tag not found`);
+      const eventIds = params.event_ids ?? [];
+      let applied = 0;
+      let skipped = 0;
+      for (const eid of eventIds) {
+        if (events.has(eid)) {
+          applied++;
+        } else {
+          skipped++;
+        }
+      }
+      return { applied_count: applied, skipped_count: skipped };
+    },
+
+    async unapplyEventTag(params: UnapplyEventTagParams) {
+      const tag = this.eventTags.find((t) => t.id === params.tag || t.name === params.tag);
+      if (!tag) throw new Error(`Luma API error 404: Event tag not found`);
+      const eventIds = params.event_ids ?? [];
+      let removed = 0;
+      let skipped = 0;
+      for (const eid of eventIds) {
+        if (events.has(eid)) {
+          removed++;
+        } else {
+          skipped++;
+        }
+      }
+      return { removed_count: removed, skipped_count: skipped };
     },
   };
 }

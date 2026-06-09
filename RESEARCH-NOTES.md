@@ -203,6 +203,78 @@ Required response fields: `id`, `name`, `type`
 - add-guests approval_status restricted to approved/pending_approval/waitlist (no declined/invited)
 - send-invites message has 200 char max
 
+## Calendar Endpoints Detail
+
+### GET /v1/calendars/get (Get Calendar)
+- No query params — calendar determined by API key
+- Returns: flat Calendar object (NOT wrapped in entries)
+- Fields: `id`, `name`, `slug` (nullable), `avatar_url` (nullable), `url`, `description` (nullable), `social_image_url` (nullable), `cover_image_url` (nullable), `is_personal` (boolean), `location` (object|null with city/region/country/country_code/timezone), `coordinate` (object|null with longitude/latitude), `instagram_handle` (nullable), `twitter_handle` (nullable), `youtube_handle` (nullable), `website` (nullable)
+- Note: path uses plural `/v1/calendars/` unlike most other calendar endpoints
+
+### GET /v1/calendar/lookup-event (Lookup Event on Calendar)
+- Query params: `platform` (enum: external/luma, optional), `url` (optional), `event_id` (optional), `event_api_id` (deprecated)
+- Returns: `{ event: { id, api_id, status } | null }` — event can be null if not found
+- Status enum: approved/pending/rejected
+
+### POST /v1/calendar/add-event (Add Event to Calendar)
+- Two variants via oneOf:
+  - External: `platform:"external"`, `url` (required), `name` (required), `start_at` (required), `duration_interval` (required), `timezone` (required), optional `submission_mode` (auto/pending), `geo_address_json`, `host`, `coordinate`
+  - Luma: `platform:"luma"`, `event_id` (optional but logically required), optional `submission_mode`
+- Returns: `{ id, api_id, status }` — status is approved/pending
+- Calendar managers get auto-approved by default; use `submission_mode:"pending"` to keep pending
+
+### POST /v1/calendar/approve-event
+- Body: `calendar_event_id` (required, accepts calev- or evt- prefix)
+- Returns: empty `{}`
+
+### POST /v1/calendar/reject-event
+- Body: `calendar_event_id` (required, accepts calev- or evt- prefix), `message` (optional)
+- Returns: empty `{}`
+
+### GET /v1/calendar/admins/list (List Calendar Admins)
+- No query params
+- Returns: `{ entries: [{ id, name (nullable), avatar_url, email, first_name (nullable), last_name (nullable), api_id }] }`
+- No pagination — returns all admins
+
+### GET /v1/calendar/coupons (List Calendar Coupons)
+- Query params: `pagination_cursor` (optional), `pagination_limit` (optional)
+- Returns: paginated `{ entries: [Coupon], has_more, next_cursor }`
+- Coupon shape: `{ id, api_id, code, remaining_count, valid_start_at, valid_end_at, percent_off (nullable), cents_off (nullable), currency (nullable), event_ticket_type_id (optional) }`
+
+### POST /v1/calendars/coupons/create (Create Calendar Coupon)
+- Note: path uses plural `/v1/calendars/` (inconsistency)
+- Body: `code` (required, 1-20 chars), `discount` (required, oneOf: `{discount_type:"percent", percent_off}` or `{discount_type:"amount", cents_off, currency}`), `remaining_count` (optional, 0-1000000), `valid_start_at` (optional), `valid_end_at` (optional)
+- Returns: created Coupon object
+
+### POST /v1/calendar/coupons/update (Update Calendar Coupon)
+- Body: `code` (required — identifies coupon), `remaining_count` (optional), `valid_start_at` (optional), `valid_end_at` (optional)
+- Returns: empty `{}`
+- Cannot change discount amount/type or the code itself
+
+### GET /v1/calendar/event-tags/list (List Event Tags)
+- No query params, no pagination
+- Returns: `{ entries: [{ id, api_id, name, color }] }`
+
+### POST /v1/calendar/event-tags/create (Create Event Tag)
+- Body: `name` (required), `color` (optional, enum: cranberry/barney/red/green/blue/purple/yellow/orange or null)
+- Returns: `{ tag_id, tag_api_id }` — note: uses tag_id not id
+
+### POST /v1/calendar/event-tags/update (Update Event Tag)
+- Body: `tag_id` (logically required), `name` (optional), `color` (optional, same enum but no null)
+- Returns: empty `{}`
+
+### POST /v1/calendar/event-tags/delete (Delete Event Tag)
+- Body: `tag_id` (logically required)
+- Returns: empty `{}`
+
+### POST /v1/calendar/event-tags/apply (Apply Event Tag)
+- Body: `tag` (required — accepts tag ID or tag name), `event_ids` (optional, string[])
+- Returns: `{ applied_count, skipped_count }`
+
+### POST /v1/calendar/event-tags/unapply (Remove Event Tag)
+- Body: `tag` (required — accepts tag ID or tag name), `event_ids` (optional, string[])
+- Returns: `{ removed_count, skipped_count }`
+
 ## Reference Projects in Codebase
 - `nori-newsletter-cli`: commander + TypeScript + vitest, factory functions for DI, Output abstraction, services/ layer
 - `nori-slack-cli`: Same patterns, includes paginate.ts and suggest.ts utilities
