@@ -4,6 +4,7 @@ import type {
   LumaService,
   LumaEvent,
   LumaGuest,
+  LumaTicketType,
   CreateEventParams,
   UpdateEventParams,
   ListEventsParams,
@@ -14,6 +15,10 @@ import type {
   CreateHostParams,
   UpdateHostParams,
   RemoveHostParams,
+  ListTicketTypesParams,
+  CreateTicketTypeParams,
+  UpdateTicketTypeParams,
+  DeleteTicketTypeParams,
 } from "../src/services/luma.js";
 
 export function createTestOutput(): Output & {
@@ -86,11 +91,31 @@ export function makeGuest(overrides: Partial<LumaGuest> = {}): LumaGuest {
   };
 }
 
+export function makeTicketType(overrides: Partial<LumaTicketType> = {}): LumaTicketType {
+  return {
+    id: "ett-test-123",
+    name: "General Admission",
+    type: "free",
+    require_approval: false,
+    is_hidden: false,
+    description: null,
+    valid_start_at: null,
+    valid_end_at: null,
+    max_capacity: null,
+    cents: null,
+    currency: null,
+    is_flexible: false,
+    min_cents: null,
+    ...overrides,
+  };
+}
+
 export function createMockLumaService(): LumaService & {
   events: Map<string, LumaEvent>;
   cancellationTokens: Map<string, string>;
   guests: Map<string, LumaGuest[]>;
   hosts: Map<string, MockHost[]>;
+  ticketTypes: Map<string, LumaTicketType[]>;
   lastAddGuestsParams: AddGuestsParams | null;
   lastSendInvitesParams: SendInvitesParams | null;
 } {
@@ -98,12 +123,14 @@ export function createMockLumaService(): LumaService & {
   const cancellationTokens = new Map<string, string>();
   const guests = new Map<string, LumaGuest[]>();
   const hosts = new Map<string, MockHost[]>();
+  const ticketTypes = new Map<string, LumaTicketType[]>();
 
   return {
     events,
     cancellationTokens,
     guests,
     hosts,
+    ticketTypes,
     lastAddGuestsParams: null,
     lastSendInvitesParams: null,
 
@@ -306,6 +333,82 @@ export function createMockLumaService(): LumaService & {
         params.event_id,
         eventHosts.filter((h) => h.email !== params.email)
       );
+    },
+
+    async listTicketTypes(params: ListTicketTypesParams) {
+      let entries = ticketTypes.get(params.eventId) ?? [];
+      if (!params.includeHidden) {
+        entries = entries.filter((t) => !t.is_hidden);
+      }
+      return { entries };
+    },
+
+    async getTicketType(id: string) {
+      for (const types of ticketTypes.values()) {
+        const found = types.find((t) => t.id === id);
+        if (found) return found;
+      }
+      throw new Error(`Luma API error 404: Ticket type not found`);
+    },
+
+    async createTicketType(params: CreateTicketTypeParams) {
+      const tt = makeTicketType({
+        id: `ett-${Date.now()}`,
+        name: params.name,
+        type: params.type,
+        require_approval: params.require_approval ?? false,
+        is_hidden: params.is_hidden ?? false,
+        description: params.description ?? null,
+        valid_start_at: params.valid_start_at ?? null,
+        valid_end_at: params.valid_end_at ?? null,
+        max_capacity: params.max_capacity ?? null,
+        cents: params.cents ?? null,
+        currency: params.currency ?? null,
+        is_flexible: params.is_flexible ?? false,
+        min_cents: params.min_cents ?? null,
+      });
+      const existing = ticketTypes.get(params.event_id) ?? [];
+      existing.push(tt);
+      ticketTypes.set(params.event_id, existing);
+      return tt;
+    },
+
+    async updateTicketType(params: UpdateTicketTypeParams) {
+      for (const types of ticketTypes.values()) {
+        const tt = types.find((t) => t.id === params.event_ticket_type_id);
+        if (tt) {
+          if (params.name !== undefined) tt.name = params.name;
+          if (params.type !== undefined) tt.type = params.type;
+          if (params.require_approval !== undefined) tt.require_approval = params.require_approval;
+          if (params.is_hidden !== undefined) tt.is_hidden = params.is_hidden;
+          if (params.description !== undefined) tt.description = params.description ?? null;
+          if (params.max_capacity !== undefined) tt.max_capacity = params.max_capacity ?? null;
+          if (params.cents !== undefined) tt.cents = params.cents ?? null;
+          if (params.currency !== undefined) tt.currency = params.currency ?? null;
+          if (params.valid_start_at !== undefined) tt.valid_start_at = params.valid_start_at ?? null;
+          if (params.valid_end_at !== undefined) tt.valid_end_at = params.valid_end_at ?? null;
+          if (params.is_flexible !== undefined) tt.is_flexible = params.is_flexible;
+          if (params.min_cents !== undefined) tt.min_cents = params.min_cents ?? null;
+          return tt;
+        }
+      }
+      throw new Error(`Luma API error 404: Ticket type not found`);
+    },
+
+    async deleteTicketType(params: DeleteTicketTypeParams) {
+      for (const [eventId, types] of ticketTypes.entries()) {
+        const idx = types.findIndex((t) => t.id === params.event_ticket_type_id);
+        if (idx !== -1) {
+          const tt = types[idx];
+          if ((tt as LumaTicketType & { has_sold_tickets?: boolean }).has_sold_tickets) {
+            throw new Error(`Luma API error 400: Cannot delete ticket type with sold tickets`);
+          }
+          types.splice(idx, 1);
+          ticketTypes.set(eventId, types);
+          return;
+        }
+      }
+      throw new Error(`Luma API error 404: Ticket type not found`);
     },
   };
 }

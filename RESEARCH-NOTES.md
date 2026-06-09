@@ -54,7 +54,7 @@
 - GET /v1/events/ticket-types/get — Get ticket type
 - POST /v1/events/ticket-types/create — Create ticket type
 - POST /v1/events/ticket-types/update — Update ticket type
-- POST /v1/event/ticket-types/delete — Delete ticket type
+- POST /v1/event/ticket-types/delete — Delete ticket type (NOTE: singular /v1/event/)
 
 ### Coupons (2 additional endpoints)
 - POST /v1/calendars/coupons/create — Create calendar coupon
@@ -144,6 +144,51 @@
 ```
 - access_level and is_visible are write-only (not returned in GET responses)
 - Host endpoints are NOT in the OpenAPI spec (documented only on reference docs site)
+
+## Ticket Type Endpoints Detail
+
+### GET /v1/events/ticket-types/list (List Ticket Types)
+- Query params: `event_id` (required), `include_hidden` (string, optional)
+- Returns: `{ entries: TicketType[] }` — no pagination (events have few ticket types)
+- Note: `include_hidden` is typed as string, not boolean
+
+### GET /v1/events/ticket-types/get (Get Ticket Type)
+- Query params: `event_ticket_type_id` (required, format: ett-xxx)
+- Returns: flat TicketType object (NOT wrapped in entries)
+
+### POST /v1/events/ticket-types/create (Create Ticket Type)
+- Body: `event_id` (required), `name` (required), `type` (required, enum: free/paid), plus optional: `require_approval`, `is_hidden`, `description`, `valid_start_at`, `valid_end_at`, `max_capacity`, `cents`, `currency`, `is_flexible`, `min_cents`
+- Returns: created TicketType object
+
+### POST /v1/events/ticket-types/update (Update Ticket Type)
+- Body: `event_ticket_type_id` (required), all other fields optional (partial update)
+- Returns: updated TicketType object
+
+### POST /v1/event/ticket-types/delete (Delete Ticket Type)
+- Note: singular `/v1/event/` path unlike other ticket-type endpoints
+- Body: `event_ticket_type_id` (required in practice), `event_ticket_type_api_id` (deprecated)
+- Returns: empty `{}`
+- Constraints: cannot delete if tickets sold or last visible ticket type
+
+### TicketType Object Shape
+```json
+{
+  "id": "ett-xxx",
+  "name": "string",
+  "type": "free|paid",
+  "require_approval": "boolean",
+  "is_hidden": "boolean",
+  "description": "string|null",
+  "valid_start_at": "ISO date string|null",
+  "valid_end_at": "ISO date string|null",
+  "max_capacity": "number|null",
+  "cents": "number|null",
+  "currency": "string|null",
+  "is_flexible": "boolean",
+  "min_cents": "number|null"
+}
+```
+Required response fields: `id`, `name`, `type`
 
 ## Key Gotchas
 - Two-step cancellation flow (request token → cancel)

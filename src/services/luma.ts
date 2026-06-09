@@ -134,6 +134,63 @@ export interface RemoveHostParams {
   email: string;
 }
 
+export interface LumaTicketType {
+  id: string;
+  name: string;
+  type: string;
+  require_approval: boolean;
+  is_hidden: boolean;
+  description: string | null;
+  valid_start_at: string | null;
+  valid_end_at: string | null;
+  max_capacity: number | null;
+  cents: number | null;
+  currency: string | null;
+  is_flexible: boolean;
+  min_cents: number | null;
+}
+
+export interface ListTicketTypesParams {
+  eventId: string;
+  includeHidden?: boolean;
+}
+
+export interface CreateTicketTypeParams {
+  event_id: string;
+  name: string;
+  type: string;
+  require_approval?: boolean;
+  is_hidden?: boolean;
+  description?: string;
+  valid_start_at?: string;
+  valid_end_at?: string;
+  max_capacity?: number;
+  cents?: number;
+  currency?: string;
+  is_flexible?: boolean;
+  min_cents?: number;
+}
+
+export interface UpdateTicketTypeParams {
+  event_ticket_type_id: string;
+  name?: string;
+  type?: string;
+  require_approval?: boolean;
+  is_hidden?: boolean;
+  description?: string;
+  valid_start_at?: string;
+  valid_end_at?: string;
+  max_capacity?: number;
+  cents?: number;
+  currency?: string;
+  is_flexible?: boolean;
+  min_cents?: number;
+}
+
+export interface DeleteTicketTypeParams {
+  event_ticket_type_id: string;
+}
+
 export interface LumaService {
   listEvents(params?: ListEventsParams): Promise<PaginatedResponse<{ event: LumaEvent }>>;
   getEvent(id: string): Promise<{ event: LumaEvent }>;
@@ -149,6 +206,11 @@ export interface LumaService {
   createHost(params: CreateHostParams): Promise<void>;
   updateHost(params: UpdateHostParams): Promise<void>;
   removeHost(params: RemoveHostParams): Promise<void>;
+  listTicketTypes(params: ListTicketTypesParams): Promise<{ entries: LumaTicketType[] }>;
+  getTicketType(id: string): Promise<LumaTicketType>;
+  createTicketType(params: CreateTicketTypeParams): Promise<LumaTicketType>;
+  updateTicketType(params: UpdateTicketTypeParams): Promise<LumaTicketType>;
+  deleteTicketType(params: DeleteTicketTypeParams): Promise<void>;
 }
 
 export function createLumaService(apiKey: string): LumaService {
@@ -257,6 +319,28 @@ export function createLumaService(apiKey: string): LumaService {
 
     async removeHost(params: RemoveHostParams) {
       await request<void>("POST", "/v1/event/hosts/remove", params as unknown as Record<string, unknown>);
+    },
+
+    async listTicketTypes(params: ListTicketTypesParams) {
+      const query: Record<string, string> = { event_id: params.eventId };
+      if (params.includeHidden) query.include_hidden = "true";
+      return request<{ entries: LumaTicketType[] }>("GET", "/v1/events/ticket-types/list", undefined, query);
+    },
+
+    async getTicketType(id: string) {
+      return request<LumaTicketType>("GET", "/v1/events/ticket-types/get", undefined, { event_ticket_type_id: id });
+    },
+
+    async createTicketType(params: CreateTicketTypeParams) {
+      return request<LumaTicketType>("POST", "/v1/events/ticket-types/create", params as unknown as Record<string, unknown>);
+    },
+
+    async updateTicketType(params: UpdateTicketTypeParams) {
+      return request<LumaTicketType>("POST", "/v1/events/ticket-types/update", params as unknown as Record<string, unknown>);
+    },
+
+    async deleteTicketType(params: DeleteTicketTypeParams) {
+      await request<void>("POST", "/v1/event/ticket-types/delete", params as unknown as Record<string, unknown>);
     },
   };
 }

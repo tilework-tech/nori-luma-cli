@@ -31,7 +31,8 @@ Path: @/
          |
          +-- createEventsCommand()  @/src/commands/events.ts
          +-- createGuestsCommand()  @/src/commands/guests.ts
-         +-- createHostsCommand()   @/src/commands/hosts.ts
+         +-- createHostsCommand()       @/src/commands/hosts.ts
+         +-- createTicketTypesCommand()  @/src/commands/ticket-types.ts
 ```
 
 ### Things to Know
@@ -39,7 +40,7 @@ Path: @/
 - The `Output` abstraction (`@/src/output.ts`) exists specifically so tests can capture stdout/stderr as strings instead of mocking `process.stdout`; the production implementation simply delegates to `process.stdout.write` / `process.stderr.write`
 - All CLI output is JSON (pretty-printed with 2-space indent) -- this is a deliberate design choice for agent consumption; there are no human-friendly table views
 - Commander's `exitOverride()` is applied in tests (`@/tests/helpers.ts`) to convert Commander's `process.exit()` calls into catchable exceptions, which is how tests assert on exit codes
-- The cancel command implements Luma's two-step cancellation protocol: first `requestCancellation` to get a token, then `cancelEvent` with that token -- this is not optional, the API enforces it
+- The `events cancel` command implements Luma's two-step cancellation protocol: first `requestCancellation` to get a token, then `cancelEvent` with that token -- this is not optional, the API enforces it
 - `tsconfig.json` uses `Node16` module resolution, so all internal imports must use `.js` extensions even though source files are `.ts`
 
 Created and maintained by Nori.
