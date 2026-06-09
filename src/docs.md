@@ -19,7 +19,7 @@ Path: @/src
 - **`program.ts`** -- Builds the Commander `Command` tree. Registers all command groups (events, guests, hosts, ticket-types, calendar, contacts, membership, organization, webhook, utility). Recursively applies `configureCommandOutput` to redirect all Commander output through the `Output` interface
 - **`output.ts`** -- Defines the `Output` interface (`write`, `error`, `setExitCode`) and the `createProcessOutput` factory that maps to `process.stdout`/`process.stderr`. This is the seam that makes the entire CLI testable without process-level mocking
 - **`config.ts`** -- Reads `LUMA_API_KEY` from `process.env`. Throws a descriptive error if missing. Returns a `LumaConfig` object. No other config sources exist yet
-- **`parse.ts`** -- Shared parsing utilities used by command action handlers. Provides `parseIntStrict` (wraps `parseInt`) and `parseFloatStrict` (wraps `parseFloat`), both throwing Commander's `InvalidArgumentError` on non-numeric input. `parseIntStrict` is used for `--limit` and similar integer flags; `parseFloatStrict` is used for latitude/longitude coordinate flags
+- **`parse.ts`** -- Shared parsing utilities used by command action handlers. Provides `parseIntStrict` (wraps `parseInt`), `parseFloatStrict` (wraps `parseFloat`), and `parseJSON` (wraps `JSON.parse`), all throwing Commander's `InvalidArgumentError` on invalid input. `parseIntStrict` is used for `--limit` and similar integer flags; `parseFloatStrict` is used for latitude/longitude coordinate flags; `parseJSON` is used for structured object flags (e.g., `--geo-address-json`, `--registration-questions`)
 
 ### Things to Know
 

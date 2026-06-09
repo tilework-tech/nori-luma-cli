@@ -8,11 +8,13 @@ describe("utility command", () => {
     luma = createMockLumaService();
   });
 
-  it("shows help with subcommands", async () => {
-    const result = await runCommand(luma, ["utility", "--help"]);
-    expect(result.stdout).toContain("get-self");
-    expect(result.stdout).toContain("entity-lookup");
-    expect(result.stdout).toContain("image-upload");
+  describe("utility --help", () => {
+    it("shows help with all subcommands listed", async () => {
+      const result = await runCommand(luma, ["utility", "--help"]);
+      expect(result.stdout).toContain("get-self");
+      expect(result.stdout).toContain("entity-lookup");
+      expect(result.stdout).toContain("image-upload");
+    });
   });
 
   describe("utility get-self", () => {

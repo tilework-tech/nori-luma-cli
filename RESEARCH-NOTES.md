@@ -640,3 +640,18 @@ The building-agentic-cli skill requires: "the source location and instructions t
 - `errors.ts`: `CliError` interface with `{ ok, error, message, suggestion, source }`. `formatError()` maps error types to structured JSON with context-specific suggestions.
 - `suggest.ts`: Custom Levenshtein distance implementation. `findSimilarMethods()` with dynamic threshold `Math.min(5, Math.max(2, Math.floor(input.length * 0.3)))`, returns up to 3 similar matches.
 - Commander's `.showSuggestionAfterError(true)` is used in nori-luma-cli but nori-slack-cli implements its own Levenshtein for richer control.
+
+## Test Coverage Gaps (identified 2026-06-09)
+
+### parse.ts has zero dedicated tests
+`src/parse.ts` exports 3 functions: `parseIntStrict`, `parseFloatStrict`, `parseJSON`. All throw `InvalidArgumentError` on invalid input. These are only tested indirectly through command-level integration tests. Edge cases to test:
+- `parseIntStrict("3.14")` — `parseInt` returns 3, not NaN, so this silently truncates floats
+- `parseIntStrict("")` — NaN, should throw
+- `parseFloatStrict("Infinity")` — `parseFloat` returns Infinity, not NaN, so this accepts Infinity
+- `parseJSON('not json')` — should throw with message containing the input
+
+### utility command test coverage is thin
+Only 9 tests for 3 subcommands. The `--help` test exists at the top level but no dedicated `describe("utility --help")` block like other command groups. Missing edge case coverage for image-upload (no error tests).
+
+### Current test count: 273 (not 270 as stated in CURRENT-PROGRESS.md)
+The 273 count comes from 11 test files. CURRENT-PROGRESS.md line 21 says "270 total tests passing" — needs update.

@@ -11,7 +11,7 @@ Path: @/tests
 
 - Tests import `createProgram` from `@/src/program.ts` and wire it with mock dependencies -- this means tests exercise the real Commander parsing, option validation, and command routing
 - The `LumaService` interface from `@/src/services/luma.ts` is the contract that both the real HTTP client and the mock service implement; tests validate command behavior against this contract
-- Test structure mirrors source structure: `@/tests/program.test.ts` tests the root program, `@/tests/commands/` has one test file per command group
+- Test structure mirrors source structure: top-level test files cover cross-cutting source modules (e.g., `@/tests/program.test.ts` for the root program, `@/tests/parse.test.ts` for shared parsing utilities), while `@/tests/commands/` has one test file per command group
 
 ### Core Implementation
 

@@ -1,6 +1,6 @@
 # Current Progress
 
-## Status: Complete — All Luma API Endpoints Covered + Agentic CLI Conventions
+## Status: Complete — All Luma API Endpoints Covered + Agentic CLI Conventions + Parse Utility Tests
 
 ## Completed
 - Project scaffolding (package.json, tsconfig, vitest, ESM setup)
@@ -18,7 +18,8 @@
 - Event coupon commands (list-coupons, create-coupon, update-coupon) — event-scoped coupons distinct from calendar coupons
 - Documentation (docs.md files for all source directories)
 - Agentic CLI UX conventions: centralized source location on all commands (root, group, and leaf), "look at the source" instructions in error output, show-help-after-error and show-suggestion-after-error on all subcommands, custom outputError handler
-- Missing API parameter coverage: added ~28 parameters across events (list: platforms/sort-column/sort-direction/status; create/update: tint-color, show-guest-list, reminders-disabled, name-requirement, phone-number-requirement, can-register-for-multiple-tickets, latitude/longitude, geo-address-json, registration-questions, feedback-email), calendar add-event (geo-address-json, geo-latitude, geo-longitude, latitude/longitude), and guests list (session status, sort-direction variants). Added parseFloatStrict utility for coordinate flags. 270 total tests passing.
+- Missing API parameter coverage: added ~28 parameters across events (list: platforms/sort-column/sort-direction/status; create/update: tint-color, show-guest-list, reminders-disabled, name-requirement, phone-number-requirement, can-register-for-multiple-tickets, latitude/longitude, geo-address-json, registration-questions, feedback-email), calendar add-event (geo-address-json, geo-latitude, geo-longitude, latitude/longitude), and guests list (session status, sort-direction variants). Added parseFloatStrict utility for coordinate flags.
+- Dedicated parse utility tests: added `tests/parse.test.ts` with 9 unit tests for `parseIntStrict`, `parseFloatStrict`, and `parseJSON`. Added utility command `--help` source location test. 283 total tests passing across 12 test files.
 
 ## Planned (all completed)
 1. ~~Project scaffolding + core infra + events commands~~ DONE
