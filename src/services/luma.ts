@@ -320,6 +320,67 @@ export interface UnapplyEventTagParams {
   event_ids?: string[];
 }
 
+export interface LumaContact {
+  id: string;
+  user_id: string;
+  created_at: string;
+  event_approved_count: number;
+  event_checked_in_count: number;
+  revenue_usd_cents: number;
+  tags: { id: string; name: string }[];
+  membership: { status: string; calendar_membership_tier_id: string | null } | null;
+  name: string | null;
+  avatar_url: string;
+  email: string;
+  first_name: string | null;
+  last_name: string | null;
+}
+
+export interface ListContactsParams {
+  query?: string;
+  tags?: string[];
+  calendarMembershipTierId?: string;
+  membershipStatus?: string;
+  paginationCursor?: string;
+  paginationLimit?: number;
+  sortColumn?: string;
+  sortDirection?: string;
+}
+
+export interface ImportContactsParams {
+  contacts: { email: string; name?: string }[];
+  tags?: string[];
+}
+
+export interface LumaContactTag {
+  id: string;
+  name: string;
+  color: string;
+}
+
+export interface CreateContactTagParams {
+  name: string;
+  color?: string | null;
+}
+
+export interface UpdateContactTagParams {
+  tag_id: string;
+  name?: string;
+  color?: string;
+}
+
+export interface ApplyContactTagParams {
+  tag: string;
+  user_ids?: string[];
+  emails?: string[];
+}
+
+export interface UnapplyContactTagParams {
+  tag: string;
+  user_ids?: string[];
+  emails?: string[];
+}
+
 export interface LumaService {
   listEvents(params?: ListEventsParams): Promise<PaginatedResponse<{ event: LumaEvent }>>;
   getEvent(id: string): Promise<{ event: LumaEvent }>;
@@ -355,6 +416,14 @@ export interface LumaService {
   deleteEventTag(tagId: string): Promise<void>;
   applyEventTag(params: ApplyEventTagParams): Promise<{ applied_count: number; skipped_count: number }>;
   unapplyEventTag(params: UnapplyEventTagParams): Promise<{ removed_count: number; skipped_count: number }>;
+  listContacts(params?: ListContactsParams): Promise<PaginatedResponse<LumaContact>>;
+  importContacts(params: ImportContactsParams): Promise<void>;
+  listContactTags(): Promise<{ entries: LumaContactTag[] }>;
+  createContactTag(params: CreateContactTagParams): Promise<{ id: string }>;
+  applyContactTag(params: ApplyContactTagParams): Promise<{ applied_count: number; skipped_count: number }>;
+  unapplyContactTag(params: UnapplyContactTagParams): Promise<{ removed_count: number; skipped_count: number }>;
+  updateContactTag(params: UpdateContactTagParams): Promise<void>;
+  deleteContactTag(tagId: string): Promise<void>;
 }
 
 export function createLumaService(apiKey: string): LumaService {
@@ -552,6 +621,73 @@ export function createLumaService(apiKey: string): LumaService {
 
     async unapplyEventTag(params: UnapplyEventTagParams) {
       return request<{ removed_count: number; skipped_count: number }>("POST", "/v1/calendar/event-tags/unapply", params as unknown as Record<string, unknown>);
+    },
+
+    async listContacts(params?: ListContactsParams) {
+      const query: Record<string, string> = {};
+      if (params?.query) query.query = params.query;
+      if (params?.calendarMembershipTierId) query.calendar_membership_tier_id = params.calendarMembershipTierId;
+      if (params?.membershipStatus) query.membership_status = params.membershipStatus;
+      if (params?.paginationLimit) query.pagination_limit = String(params.paginationLimit);
+      if (params?.paginationCursor) query.pagination_cursor = params.paginationCursor;
+      if (params?.sortColumn) query.sort_column = params.sortColumn;
+      if (params?.sortDirection) query.sort_direction = params.sortDirection;
+
+      const url = new URL("/v1/calendars/contacts/list", baseUrl);
+      for (const [key, value] of Object.entries(query)) {
+        if (value !== undefined) {
+          url.searchParams.set(key, value);
+        }
+      }
+      if (params?.tags) {
+        for (const tag of params.tags) {
+          url.searchParams.append("tags", tag);
+        }
+      }
+
+      const headers: Record<string, string> = {
+        "x-luma-api-key": apiKey,
+        Accept: "application/json",
+      };
+
+      const response = await fetch(url.toString(), { method: "GET", headers });
+
+      if (!response.ok) {
+        const text = await response.text();
+        throw new Error(`Luma API error ${response.status}: ${text}`);
+      }
+
+      const text = await response.text();
+      if (!text) return { entries: [], has_more: false, next_cursor: null } as PaginatedResponse<LumaContact>;
+      return JSON.parse(text) as PaginatedResponse<LumaContact>;
+    },
+
+    async importContacts(params: ImportContactsParams) {
+      await request<void>("POST", "/v1/calendars/contacts/import", params as unknown as Record<string, unknown>);
+    },
+
+    async listContactTags() {
+      return request<{ entries: LumaContactTag[] }>("GET", "/v1/calendars/contact-tags/list");
+    },
+
+    async createContactTag(params: CreateContactTagParams) {
+      return request<{ id: string }>("POST", "/v1/calendars/contact-tags/create", params as unknown as Record<string, unknown>);
+    },
+
+    async applyContactTag(params: ApplyContactTagParams) {
+      return request<{ applied_count: number; skipped_count: number }>("POST", "/v1/calendars/contact-tags/apply", params as unknown as Record<string, unknown>);
+    },
+
+    async unapplyContactTag(params: UnapplyContactTagParams) {
+      return request<{ removed_count: number; skipped_count: number }>("POST", "/v1/calendars/contact-tags/unapply", params as unknown as Record<string, unknown>);
+    },
+
+    async updateContactTag(params: UpdateContactTagParams) {
+      await request<void>("POST", "/v1/calendars/contact-tags/update", params as unknown as Record<string, unknown>);
+    },
+
+    async deleteContactTag(tagId: string) {
+      await request<void>("POST", "/v1/calendars/contact-tags/delete", { tag_id: tagId });
     },
   };
 }

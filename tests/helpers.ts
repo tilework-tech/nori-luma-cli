@@ -9,6 +9,8 @@ import type {
   LumaCalendarAdmin,
   LumaCoupon,
   LumaEventTag,
+  LumaContact,
+  LumaContactTag,
   CalendarEventEntry,
   CreateEventParams,
   UpdateEventParams,
@@ -35,6 +37,12 @@ import type {
   UpdateEventTagParams,
   ApplyEventTagParams,
   UnapplyEventTagParams,
+  ListContactsParams,
+  ImportContactsParams,
+  CreateContactTagParams,
+  UpdateContactTagParams,
+  ApplyContactTagParams,
+  UnapplyContactTagParams,
 } from "../src/services/luma.js";
 
 export function createTestOutput(): Output & {
@@ -185,6 +193,34 @@ export function makeEventTag(overrides: Partial<LumaEventTag> = {}): LumaEventTa
   };
 }
 
+export function makeContact(overrides: Partial<LumaContact> = {}): LumaContact {
+  return {
+    id: "ct-test-123",
+    user_id: "usr-test-123",
+    created_at: "2024-06-01T00:00:00.000Z",
+    event_approved_count: 0,
+    event_checked_in_count: 0,
+    revenue_usd_cents: 0,
+    tags: [],
+    membership: null,
+    name: "Test Contact",
+    avatar_url: "https://example.com/avatar.png",
+    email: "contact@example.com",
+    first_name: "Test",
+    last_name: "Contact",
+    ...overrides,
+  };
+}
+
+export function makeContactTag(overrides: Partial<LumaContactTag> = {}): LumaContactTag {
+  return {
+    id: "tag-test-123",
+    name: "Test Tag",
+    color: "blue",
+    ...overrides,
+  };
+}
+
 export interface MockCalendarEvent {
   id: string;
   api_id: string;
@@ -203,9 +239,12 @@ export function createMockLumaService(): LumaService & {
   calendarCoupons: LumaCoupon[];
   eventTags: LumaEventTag[];
   calendarEvents: MockCalendarEvent[];
+  contacts: LumaContact[];
+  contactTags: LumaContactTag[];
   lastAddGuestsParams: AddGuestsParams | null;
   lastSendInvitesParams: SendInvitesParams | null;
   lastRejectEventParams: RejectEventParams | null;
+  lastImportContactsParams: ImportContactsParams | null;
 } {
   const events = new Map<string, LumaEvent>();
   const cancellationTokens = new Map<string, string>();
@@ -224,9 +263,12 @@ export function createMockLumaService(): LumaService & {
     calendarCoupons: [],
     eventTags: [],
     calendarEvents: [],
+    contacts: [],
+    contactTags: [],
     lastAddGuestsParams: null,
     lastSendInvitesParams: null,
     lastRejectEventParams: null,
+    lastImportContactsParams: null,
 
     async listEvents(params?: ListEventsParams) {
       let entries = Array.from(events.values()).map((event) => ({ event }));
@@ -637,6 +679,128 @@ export function createMockLumaService(): LumaService & {
         }
       }
       return { removed_count: removed, skipped_count: skipped };
+    },
+
+    async listContacts(params?: ListContactsParams) {
+      let entries = [...this.contacts];
+
+      if (params?.query) {
+        const q = params.query.toLowerCase();
+        entries = entries.filter(
+          (c) =>
+            (c.name && c.name.toLowerCase().includes(q)) ||
+            c.email.toLowerCase().includes(q)
+        );
+      }
+      if (params?.tags && params.tags.length > 0) {
+        entries = entries.filter((c) =>
+          c.tags.some((t) => params.tags!.includes(t.id) || params.tags!.includes(t.name))
+        );
+      }
+
+      const limit = params?.paginationLimit ?? 50;
+      const startIndex = params?.paginationCursor ? parseInt(params.paginationCursor, 10) : 0;
+      const page = entries.slice(startIndex, startIndex + limit);
+      const hasMore = startIndex + limit < entries.length;
+
+      return {
+        entries: page,
+        has_more: hasMore,
+        next_cursor: hasMore ? String(startIndex + limit) : null,
+      };
+    },
+
+    async importContacts(params: ImportContactsParams) {
+      this.lastImportContactsParams = params;
+      for (const c of params.contacts) {
+        this.contacts.push(
+          makeContact({
+            id: `ct-${this.contacts.length + 1}`,
+            email: c.email,
+            name: c.name ?? null,
+          })
+        );
+      }
+    },
+
+    async listContactTags() {
+      return { entries: this.contactTags };
+    },
+
+    async createContactTag(params: CreateContactTagParams) {
+      const id = `tag-${this.contactTags.length + 1}`;
+      const tag = makeContactTag({
+        id,
+        name: params.name,
+        color: params.color ?? "blue",
+      });
+      this.contactTags.push(tag);
+      return { id };
+    },
+
+    async applyContactTag(params: ApplyContactTagParams) {
+      const tag = this.contactTags.find((t) => t.id === params.tag || t.name === params.tag);
+      if (!tag) throw new Error(`Luma API error 404: Contact tag not found`);
+      const emails = params.emails ?? [];
+      const userIds = params.user_ids ?? [];
+      let applied = 0;
+      let skipped = 0;
+      for (const email of emails) {
+        const contact = this.contacts.find((c) => c.email === email);
+        if (contact) {
+          applied++;
+        } else {
+          skipped++;
+        }
+      }
+      for (const uid of userIds) {
+        const contact = this.contacts.find((c) => c.user_id === uid);
+        if (contact) {
+          applied++;
+        } else {
+          skipped++;
+        }
+      }
+      return { applied_count: applied, skipped_count: skipped };
+    },
+
+    async unapplyContactTag(params: UnapplyContactTagParams) {
+      const tag = this.contactTags.find((t) => t.id === params.tag || t.name === params.tag);
+      if (!tag) throw new Error(`Luma API error 404: Contact tag not found`);
+      const emails = params.emails ?? [];
+      const userIds = params.user_ids ?? [];
+      let removed = 0;
+      let skipped = 0;
+      for (const email of emails) {
+        const contact = this.contacts.find((c) => c.email === email);
+        if (contact) {
+          removed++;
+        } else {
+          skipped++;
+        }
+      }
+      for (const uid of userIds) {
+        const contact = this.contacts.find((c) => c.user_id === uid);
+        if (contact) {
+          removed++;
+        } else {
+          skipped++;
+        }
+      }
+      return { removed_count: removed, skipped_count: skipped };
+    },
+
+    async updateContactTag(params: UpdateContactTagParams) {
+      const tag = this.contactTags.find((t) => t.id === params.tag_id);
+      if (!tag) throw new Error(`Luma API error 404: Contact tag not found`);
+      if (params.name !== undefined) tag.name = params.name;
+      if (params.color !== undefined) tag.color = params.color;
+    },
+
+    async deleteContactTag(tagId: string) {
+      const idx = this.contactTags.findIndex((t) => t.id === tagId);
+      if (idx === -1) throw new Error(`Luma API error 404: Contact tag not found`);
+      this.contactTags.splice(idx, 1);
     },
   };
 }

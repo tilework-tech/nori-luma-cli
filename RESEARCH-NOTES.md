@@ -60,7 +60,7 @@
 - POST /v1/calendars/coupons/create — Create calendar coupon
 - POST /v1/events/coupons/create — Create event coupon
 
-### Contacts (9 endpoints)
+### Contacts (8 endpoints, GET /v1/calendars/get already in Calendar)
 - GET /v1/calendars/contacts/list — List contacts
 - POST /v1/calendars/contacts/import — Import contacts
 - GET /v1/calendars/contact-tags/list — List contact tags
@@ -69,7 +69,45 @@
 - POST /v1/calendars/contact-tags/unapply — Remove contact tag
 - POST /v1/calendars/contact-tags/update — Update contact tag
 - POST /v1/calendars/contact-tags/delete — Delete contact tag
-- GET /v1/calendars/get — Get calendar details
+
+## Contact Endpoints Detail
+
+### GET /v1/calendars/contacts/list (List Contacts)
+- Query params (all optional): `query` (search names/emails), `tags` (string[] — repeated query params for tag IDs or names), `calendar_membership_tier_id`, `membership_status` (enum: approved/pending/approved-pending-payment/declined), `pagination_cursor`, `pagination_limit`, `sort_column` (enum: created_at/event_checked_in_count/event_approved_count/name/revenue_usd_cents), `sort_direction` (enum: asc/desc/asc nulls last/desc nulls last)
+- Returns: paginated `{ entries: Contact[], has_more, next_cursor }`
+- Contact shape: `{ id, user_id, created_at, event_approved_count, event_checked_in_count, revenue_usd_cents, tags: [{id, name}], membership: {status, calendar_membership_tier_id} | null, name, avatar_url, email, first_name, last_name }`
+
+### POST /v1/calendars/contacts/import (Import Contacts)
+- Body: `contacts` (required, array of `{email (required), name? (optional)}`), `tags` (optional, string[] — tag IDs or names to apply)
+- Returns: empty `{}`
+- Gotcha: Will NOT overwrite existing user names
+
+### GET /v1/calendars/contact-tags/list (List Contact Tags)
+- No query params, no pagination params
+- Returns: `{ entries: [{id, name, color}], has_more }`
+- Note: has_more present but no pagination mechanism
+
+### POST /v1/calendars/contact-tags/create (Create Contact Tag)
+- Body: `name` (required), `color` (optional, enum: cranberry/barney/red/green/blue/purple/yellow/orange)
+- Returns: `{ id }` — note: just `id`, not `tag_id`/`tag_api_id` like event tags
+
+### POST /v1/calendars/contact-tags/apply (Apply Contact Tag)
+- Body: `tag` (required — tag ID or name), `user_ids` (optional, string[]), `emails` (optional, string[])
+- Returns: `{ applied_count, skipped_count }`
+- Note: Only works on existing contacts, does not create new ones
+
+### POST /v1/calendars/contact-tags/unapply (Remove Contact Tag)
+- Body: `tag` (required — tag ID or name), `user_ids` (optional, string[]), `emails` (optional, string[])
+- Returns: `{ removed_count, skipped_count }`
+
+### POST /v1/calendars/contact-tags/update (Update Contact Tag)
+- Body: `tag_id` (required), `name` (optional), `color` (optional, same enum)
+- Returns: empty `{}`
+- Note: Uses `tag_id` not `tag`
+
+### POST /v1/calendars/contact-tags/delete (Delete Contact Tag)
+- Body: `tag_id` (required)
+- Returns: empty `{}`
 
 ### Memberships (3 endpoints)
 - GET /v1/memberships/tiers/list — List tiers
@@ -274,6 +312,62 @@ Required response fields: `id`, `name`, `type`
 ### POST /v1/calendar/event-tags/unapply (Remove Event Tag)
 - Body: `tag` (required — accepts tag ID or tag name), `event_ids` (optional, string[])
 - Returns: `{ removed_count, skipped_count }`
+
+## Contact Endpoints Detail
+
+### GET /v1/calendars/contacts/list (List Contacts)
+- Query params (all optional): `query` (string, search over names/emails), `tags` (string[], repeated query params, OR logic), `calendar_membership_tier_id` (string), `membership_status` (enum: approved/pending/approved-pending-payment/declined), `pagination_cursor`, `pagination_limit`, `sort_column` (enum: created_at/event_checked_in_count/event_approved_count/name/revenue_usd_cents), `sort_direction` (enum: asc/desc/asc nulls last/desc nulls last)
+- Returns: paginated `{ entries: [Contact], has_more, next_cursor }`
+- Contact shape: `{ id, user_id, created_at, event_approved_count, event_checked_in_count, revenue_usd_cents, tags: [{id, name}], membership: {status, calendar_membership_tier_id} | null, name (nullable), avatar_url, email, first_name (nullable), last_name (nullable) }`
+- Note: `next_cursor` only present when `has_more` is true
+- Note: `tags` filter uses OR logic (contacts with ANY of the specified tags)
+- Note: `sort_direction` supports null-positioning variants with spaces
+
+### POST /v1/calendars/contacts/import (Import Contacts)
+- Body: `contacts` (required, array of `{email (required), name (optional)}`), `tags` (optional, string[], tag IDs or tag names)
+- Returns: empty `{}`
+- Note: will NOT overwrite existing user's name
+- Note: `tags` can be tag IDs or tag names mixed freely
+
+### GET /v1/calendars/contact-tags/list (List Contact Tags)
+- No query params
+- Returns: `{ entries: [{id, name, color}], has_more }`
+- No pagination mechanism (no next_cursor in response, no pagination params)
+- `has_more` likely always false (returns all tags)
+
+### POST /v1/calendars/contact-tags/create (Create Contact Tag)
+- Body: `name` (required), `color` (optional, nullable, enum: cranberry/barney/red/green/blue/purple/yellow/orange)
+- Returns: `{ id }` — just the tag ID (starts with tag-)
+- Note: unlike event-tags/create which returns `{tag_id, tag_api_id}`
+
+### POST /v1/calendars/contact-tags/apply (Apply Contact Tag)
+- Body: `tag` (required, accepts tag ID or tag name), `user_ids` (optional, string[]), `emails` (optional, string[])
+- Returns: `{ applied_count, skipped_count }`
+- Note: does NOT create new contacts; non-contacts counted in skipped_count
+- Note: logically need at least one of user_ids or emails
+
+### POST /v1/calendars/contact-tags/unapply (Remove Contact Tag)
+- Body: `tag` (required, accepts tag ID or tag name), `user_ids` (optional, string[]), `emails` (optional, string[])
+- Returns: `{ removed_count, skipped_count }`
+- Note: only affects existing contacts
+
+### POST /v1/calendars/contact-tags/update (Update Contact Tag)
+- Body: `tag_id` (required, starts with tag-), `name` (optional), `color` (optional, enum: cranberry/barney/red/green/blue/purple/yellow/orange — NOT nullable unlike create)
+- Returns: empty `{}`
+- Note: uses `tag_id` not `tag` — requires actual ID, not name
+
+### POST /v1/calendars/contact-tags/delete (Delete Contact Tag)
+- Body: `tag_id` (required, starts with tag-)
+- Returns: empty `{}`
+- Note: uses `tag_id` not `tag` — requires actual ID, not name
+
+### Contact Endpoint Gotchas
+- All paths use plural `/v1/calendars/` (consistent within contacts, unlike calendar/event-tags)
+- apply/unapply use `tag` (accepts ID or name), update/delete use `tag_id` (ID only) — same inconsistency as event-tags
+- Contact tag create returns `{ id }` whereas event tag create returns `{ tag_id, tag_api_id }`
+- Contact apply/unapply accept `user_ids`/`emails` arrays; event tag apply/unapply accept `event_ids`
+- Import returns empty `{}` with no feedback on counts
+- Color enum (8 values): cranberry, barney, red, green, blue, purple, yellow, orange
 
 ## Reference Projects in Codebase
 - `nori-newsletter-cli`: commander + TypeScript + vitest, factory functions for DI, Output abstraction, services/ layer

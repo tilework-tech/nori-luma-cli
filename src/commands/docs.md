@@ -5,11 +5,11 @@ Path: @/src/commands
 ### Overview
 
 - Contains CLI command group definitions, each exported as a factory function that receives `LumaService` and `Output` and returns a Commander `Command`
-- Command groups cover the main Luma domain entities: events (CRUD + cancel), guests (list, get, add, update status, send invites), hosts (add, update, remove), ticket-types (CRUD + delete), and calendar (settings, admins, coupons, event tags, event submissions)
+- Command groups cover the main Luma domain entities: events (CRUD + cancel), guests (list, get, add, update status, send invites), hosts (add, update, remove), ticket-types (CRUD + delete), calendar (settings, admins, coupons, event tags, event submissions), and contacts (list, import, contact tags CRUD, tag apply/unapply)
 
 ### How it fits into the larger codebase
 
-- `@/src/program.ts` calls each command factory (e.g., `createEventsCommand`, `createGuestsCommand`, `createHostsCommand`, `createTicketTypesCommand`, `createCalendarCommand`) and attaches the result to the root Commander program via `addCommand`
+- `@/src/program.ts` calls each command factory (e.g., `createEventsCommand`, `createGuestsCommand`, `createHostsCommand`, `createTicketTypesCommand`, `createCalendarCommand`, `createContactsCommand`) and attaches the result to the root Commander program via `addCommand`
 - Command factories depend on the `LumaService` interface from `@/src/services/luma.ts` and the `Output` interface from `@/src/output.ts` -- they never import concrete implementations
 - Tests in `@/tests/commands/` exercise these commands end-to-end through the `runCommand` helper, which passes a mock `LumaService` into `createProgram`
 
@@ -17,7 +17,7 @@ Path: @/src/commands
 
 - Each command file exports a `create<Group>Command(luma, out)` factory that builds a Commander command with subcommands
 - Subcommands follow a standard pattern: parse CLI flags -> call a `LumaService` method -> write JSON to `out.write()` on success or `out.error()` + `out.setExitCode(1)` on failure
-- Read operations (e.g., `events list`, `guests get`) output the full API response as JSON. Write-only operations where the API returns empty `{}` (e.g., `guests add`, `hosts add`, `hosts remove`, `ticket-types delete`, `calendar approve-event`, `calendar reject-event`, `calendar update-coupon`, `calendar update-event-tag`, `calendar delete-event-tag`) output confirmation JSON like `{ approved: true, calendar_event_id }` or `{ deleted: true }` instead
+- Read operations (e.g., `events list`, `guests get`) output the full API response as JSON. Write-only operations where the API returns empty `{}` (e.g., `guests add`, `hosts add`, `hosts remove`, `ticket-types delete`, `calendar approve-event`, `calendar reject-event`, `contacts import`, `contacts update-contact-tag`, `contacts delete-contact-tag`) output confirmation JSON like `{ approved: true, calendar_event_id }` or `{ deleted: true }` instead
 - The `events cancel` subcommand implements Luma's two-step cancellation: calls `requestCancellation` to obtain a `cancellation_token`, then calls `cancelEvent` with that token, both within a single command invocation
 - Commander's `requiredOption` enforces mandatory flags; missing required options cause Commander to exit with a non-zero code and error message
 
@@ -33,6 +33,8 @@ Path: @/src/commands
 - The `calendar create-coupon` command similarly discriminates on `--discount-type`: `percent` sends `percent_off`, while `amount` sends `cents_off` and `currency`. The discriminated discount object is nested inside the `CreateCouponParams`
 - The `calendar apply-event-tag` and `calendar unapply-event-tag` commands accept `--event-ids` as a comma-separated string, which the command action splits into an array before calling the service. The `--tag` flag accepts either a tag ID or tag name
 - The `calendar list-admins`, `calendar list-event-tags` endpoints have no pagination. The `calendar list-coupons` endpoint uses cursor-based pagination (same as `events list` and `guests list`)
+- The `contacts` command group mirrors the pattern of `calendar` event tags for contact tags: `apply-contact-tag` and `unapply-contact-tag` accept `--tag` (ID or name) and identify contacts via `--emails` or `--user-ids` as comma-separated strings, split into arrays in the action handler. The `contacts import` command maps positional `--names` to `--emails` by array index, building a `{ email, name? }[]` for the service
+- The `contacts list` command passes `--tags` as comma-separated values that get split into an array, unlike most other list commands that use simple scalar filters. The `listContacts` service method handles these as repeated query params (via `url.searchParams.append`) rather than a single comma-joined value
 - All output is JSON via `JSON.stringify(result, null, 2)` -- there is no table or human-friendly formatting mode
 
 Created and maintained by Nori.

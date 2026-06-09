@@ -6,6 +6,7 @@ import { createGuestsCommand } from "./commands/guests.js";
 import { createHostsCommand } from "./commands/hosts.js";
 import { createTicketTypesCommand } from "./commands/ticket-types.js";
 import { createCalendarCommand } from "./commands/calendar.js";
+import { createContactsCommand } from "./commands/contacts.js";
 
 function configureCommandOutput(cmd: Command, out: Output): void {
   cmd.configureOutput({
@@ -38,6 +39,7 @@ export function createProgram(luma: LumaService, out: Output): Command {
   program.addCommand(createHostsCommand(luma, out));
   program.addCommand(createTicketTypesCommand(luma, out));
   program.addCommand(createCalendarCommand(luma, out));
+  program.addCommand(createContactsCommand(luma, out));
 
   configureCommandOutput(program, out);
 
