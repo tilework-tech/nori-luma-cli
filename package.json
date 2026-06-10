@@ -2,6 +2,7 @@
   "name": "nori-luma-cli",
   "version": "0.1.0",
   "description": "CLI tool for the Luma event platform API",
+  "license": "Apache-2.0",
   "type": "module",
   "bin": {
     "nori-luma": "./dist/index.js"
@@ -18,8 +19,8 @@
   },
   "files": [
     "dist",
-    "src",
-    "LICENSE"
+    "LICENSE",
+    "LICENSE-ADDENDUM.txt"
   ],
   "dependencies": {
     "commander": "^14.0.0"

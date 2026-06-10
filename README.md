@@ -78,4 +78,4 @@ npm test
 
 ## License
 
-MIT
+See [LICENSE](LICENSE) and [LICENSE-ADDENDUM.txt](LICENSE-ADDENDUM.txt).
