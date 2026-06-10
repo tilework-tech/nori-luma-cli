@@ -2,10 +2,29 @@
 
 CLI for the [Luma](https://lu.ma) event platform API. Covers all 61 API endpoints across 10 command groups. Designed for agentic use — all output is JSON, all parameters are flags, no interactivity.
 
-## Setup
+## Install
+
+From npm:
 
 ```bash
+npm install -g nori-luma-cli
+```
+
+This puts the **`nori-luma`** command on your `PATH`. Note the command is `nori-luma`, not the package name `nori-luma-cli`.
+
+From source (for contributors):
+
+```bash
+git clone https://github.com/tilework-tech/nori-luma-cli.git
+cd nori-luma-cli
 npm install
+npm run build
+npm link   # makes `nori-luma` available globally
+```
+
+Then set your API key:
+
+```bash
 export LUMA_API_KEY=your-key-here
 ```
 
@@ -16,15 +35,10 @@ Get your API key from: Luma App → Calendars Home → Settings → Developer �
 Help and version output work before `LUMA_API_KEY` is set. API commands require the key.
 
 ```bash
-npx tsx src/index.ts <command> [subcommand] [options]
-```
-
-Or after building:
-
-```bash
-npm run build
 nori-luma <command> [subcommand] [options]
 ```
+
+Contributors working from a clone can run without building via `npm run dev -- <command> [options]`.
 
 ## Commands
 
@@ -44,28 +58,28 @@ nori-luma <command> [subcommand] [options]
 Use `--help` on any command or subcommand for detailed usage:
 
 ```bash
-npx tsx src/index.ts events --help
-npx tsx src/index.ts events create --help
+nori-luma events --help
+nori-luma events create --help
 ```
 
 ## Examples
 
 ```bash
 # List upcoming events
-npx tsx src/index.ts events list --after 2024-01-01T00:00:00Z
+nori-luma events list --after 2024-01-01T00:00:00Z
 
 # Create an event
-npx tsx src/index.ts events create \
+nori-luma events create \
   --name "Meetup" \
   --start-at "2024-07-01T18:00:00Z" \
   --timezone "America/New_York" \
   --visibility public
 
 # Get guest list
-npx tsx src/index.ts guests list --event-id evt-xxx
+nori-luma guests list --event-id evt-xxx
 
 # Look up a lu.ma slug
-npx tsx src/index.ts utility entity-lookup --slug my-community
+nori-luma utility entity-lookup --slug my-community
 ```
 
 ## Testing
