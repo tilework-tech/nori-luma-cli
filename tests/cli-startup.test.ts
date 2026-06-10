@@ -56,6 +56,16 @@ describe("cli startup", () => {
     expect(result.stderr).not.toContain("LUMA_API_KEY");
   });
 
+  it("shows help and API key instructions when run with no arguments", async () => {
+    const result = await runCliWithoutApiKey([]);
+
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toContain("Usage: nori-luma");
+    expect(result.stdout).toContain("Commands:");
+    expect(result.stdout).toContain("Get your API key from");
+    expect(result.stderr).not.toContain("environment variable is required");
+  });
+
   it("still requires LUMA_API_KEY for API commands", async () => {
     const result = await runCliWithoutApiKey(["utility", "get-self"]);
 
