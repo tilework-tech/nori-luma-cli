@@ -12,10 +12,16 @@ function isHelpOrVersionRequest(args: string[]): boolean {
 }
 
 try {
-  const config = isHelpOrVersionRequest(process.argv.slice(2)) ? { apiKey: "" } : loadConfig();
+  const args = process.argv.slice(2);
+  const showHelpOnly = args.length === 0 || isHelpOrVersionRequest(args);
+  const config = showHelpOnly ? { apiKey: "" } : loadConfig();
   const luma = createLumaService(config.apiKey);
   const program = createProgram(luma, out);
-  await program.parseAsync();
+  if (args.length === 0) {
+    program.outputHelp();
+  } else {
+    await program.parseAsync();
+  }
 } catch (err) {
   out.error(String(err) + "\n");
   process.exitCode = 1;

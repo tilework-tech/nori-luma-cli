@@ -42,6 +42,12 @@ export function createProgram(luma: LumaService, out: Output): Command {
         "Requires LUMA_API_KEY environment variable to be set."
     );
 
+  program.addHelpText(
+    "after",
+    "\nGet your API key from: Luma App -> Calendars Home -> Settings -> Developer -> API Keys\n" +
+      "Set it with: export LUMA_API_KEY=your-key-here"
+  );
+
   program.addCommand(createEventsCommand(luma, out));
   program.addCommand(createGuestsCommand(luma, out));
   program.addCommand(createHostsCommand(luma, out));
