@@ -1,3 +1,4 @@
+import { createRequire } from "node:module";
 import { Command } from "commander";
 import type { LumaService } from "./services/luma.js";
 import type { Output } from "./output.js";
@@ -11,6 +12,9 @@ import { createMembershipCommand } from "./commands/membership.js";
 import { createOrganizationCommand } from "./commands/organization.js";
 import { createWebhookCommand } from "./commands/webhook.js";
 import { createUtilityCommand } from "./commands/utility.js";
+
+const require = createRequire(import.meta.url);
+const { version } = require("../package.json") as { version: string };
 
 function configureCommandOutput(cmd: Command, out: Output, sourceDir: string): void {
   cmd.configureOutput({
@@ -36,7 +40,7 @@ export function createProgram(luma: LumaService, out: Output): Command {
 
   program
     .name("nori-luma")
-    .version("0.1.0")
+    .version(version)
     .description(
       "Use this CLI tool to manage events, guests, calendars, and more on the Luma (lu.ma) event platform.\n\n" +
         "Requires LUMA_API_KEY environment variable to be set."

@@ -1,8 +1,12 @@
 import { execFile } from "node:child_process";
+import { createRequire } from "node:module";
 import { promisify } from "node:util";
 import { describe, expect, it } from "vitest";
 
 const execFileAsync = promisify(execFile);
+
+const require = createRequire(import.meta.url);
+const { version: packageVersion } = require("../package.json") as { version: string };
 
 async function runCliWithoutApiKey(args: string[]) {
   const env = { ...process.env };
@@ -52,7 +56,7 @@ describe("cli startup", () => {
     const result = await runCliWithoutApiKey(["--version"]);
 
     expect(result.exitCode).toBe(0);
-    expect(result.stdout.trim()).toBe("0.1.0");
+    expect(result.stdout.trim()).toBe(packageVersion);
     expect(result.stderr).not.toContain("LUMA_API_KEY");
   });
 
