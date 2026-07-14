@@ -93,3 +93,27 @@ npm test
 ## License
 
 See [LICENSE](LICENSE) and [LICENSE-ADDENDUM.txt](LICENSE-ADDENDUM.txt).
+
+
+## Releasing
+
+Publishing is automated by `.github/workflows/luma-cli-release.yml` and uses **npm OIDC Trusted
+Publishing — no `NPM_TOKEN` secret**, matching the sibling `nori-slack-cli` /
+`nori-skillsets` deploys. A `luma-cli-v<version>` **git tag is the source of truth**;
+`package.json` ships a `0.0.0` placeholder that the workflow stamps from the tag
+before it builds, so `--version` always matches the installed build.
+
+Cut a release from a clean `main`:
+
+```bash
+npm run release -- 0.2.0
+```
+
+This validates the version, pushes the `luma-cli-v0.2.0` tag, and the workflow builds,
+tests, publishes to npm (`@latest`), and creates a GitHub Release.
+
+**One-time setup** (repo/npm admin, cannot be scripted):
+
+- Create a GitHub **Environment** named `npm-publish` in this repo.
+- Register a **Trusted Publisher** for `nori-luma-cli` on npmjs.com: org `tilework-tech`,
+  repo `nori-luma-cli`, workflow `luma-cli-release.yml`, environment `npm-publish`.
