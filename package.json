@@ -1,6 +1,6 @@
 {
   "name": "nori-luma-cli",
-  "version": "0.1.1",
+  "version": "0.0.0",
   "description": "CLI tool for the Luma event platform API",
   "license": "Apache-2.0",
   "type": "module",
@@ -12,7 +12,8 @@
     "dev": "tsx src/index.ts",
     "test": "vitest run",
     "test:watch": "vitest",
-    "prepublishOnly": "npm run build && npm test"
+    "prepublishOnly": "npm run build && npm test",
+    "release": "node scripts/create-release.mjs"
   },
   "engines": {
     "node": ">=18.0.0"
